@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A D&D 5e assistant for Druid players to manage Wildshape transformations and Conjure Animals spell usage">
+    <title>Druid's Wildshape & Conjure Animals Assistant</title>
+    <link rel="stylesheet" href="css/main.css">
+    <!-- PWA related meta tags will be added later -->
+</head>
+<body>
+    <div id="app" class="druid-assistant">
+        <header>
+            <h1>The Druid's Assistant</h1>
+            <div class="data-controls">
+                <input type="file" id="import-file" accept=".md" aria-label="Import data" hidden>
+                <button id="import-button" class="data-button">Import Data</button>
+                <button id="export-button" class="data-button">Export Data</button>
+                <button id="reset-button" class="data-button">Reset Data</button>
+            </div>
+        </header>
+        
+        <nav class="tab-navigation" role="tablist">
+            <input type="radio" name="tabs" id="tab-statblock" checked aria-labelledby="label-statblock">
+            <label id="label-statblock" for="tab-statblock" role="tab" aria-selected="true" aria-controls="statblock-tab">Statblocks</label>
+            
+            <input type="radio" name="tabs" id="tab-wildshape" aria-labelledby="label-wildshape">
+            <label id="label-wildshape" for="tab-wildshape" role="tab" aria-selected="false" aria-controls="wildshape-tab">Wildshape</label>
+            
+            <input type="radio" name="tabs" id="tab-conjure" aria-labelledby="label-conjure">
+            <label id="label-conjure" for="tab-conjure" role="tab" aria-selected="false" aria-controls="conjure-tab">Conjure Animals</label>
+            
+            <input type="radio" name="tabs" id="tab-spells" aria-labelledby="label-spells">
+            <label id="label-spells" for="tab-spells" role="tab" aria-selected="false" aria-controls="spells-tab">Spells</label>
+            
+            <input type="radio" name="tabs" id="tab-dice" aria-labelledby="label-dice">
+            <label id="label-dice" for="tab-dice" role="tab" aria-selected="false" aria-controls="dice-tab">Dice Roller</label>
+        </nav>
+        
+        <main>
+            <!-- Statblock Tab -->
+            <section id="statblock-tab" class="tab-content active" role="tabpanel" aria-labelledby="label-statblock">
+                <div class="split-layout">
+                    <div class="sidebar">
+                        <div class="search-container">
+                            <input type="text" id="beast-search" class="search-input" placeholder="Search beasts..." aria-label="Search beasts">
+                            <button id="clear-search" class="clear-button" aria-label="Clear search">&times;</button>
+                        </div>
+                        <div class="filter-container">
+                            <h3>Filters</h3>
+                            <div class="filter-group">
+                                <h4>Challenge Rating</h4>
+                                <div class="range-filter">
+                                    <label for="cr-min">Min CR:</label>
+                                    <select id="cr-min" class="cr-select">
+                                        <option value="0">0</option>
+                                        <option value="0.125">1/8</option>
+                                        <option value="0.25">1/4</option>
+                                        <option value="0.5">1/2</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                    </select>
+                                    <label for="cr-max">Max CR:</label>
+                                    <select id="cr-max" class="cr-select">
+                                        <option value="0">0</option>
+                                        <option value="0.125">1/8</option>
+                                        <option value="0.25">1/4</option>
+                                        <option value="0.5">1/2</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6" selected>6</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <h4>Size</h4>
+                                <div class="checkbox-filter">
+                                    <label><input type="checkbox" value="Tiny" checked> Tiny</label>
+                                    <label><input type="checkbox" value="Small" checked> Small</label>
+                                    <label><input type="checkbox" value="Medium" checked> Medium</label>
+                                    <label><input type="checkbox" value="Large" checked> Large</label>
+                                    <label><input type="checkbox" value="Huge" checked> Huge</label>
+                                    <label><input type="checkbox" value="Gargantuan" checked> Gargantuan</label>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <h4>Environment</h4>
+                                <div class="checkbox-filter">
+                                    <label><input type="checkbox" value="Forest" checked> Forest</label>
+                                    <label><input type="checkbox" value="Grassland" checked> Grassland</label>
+                                    <label><input type="checkbox" value="Hill" checked> Hill</label>
+                                </div>
+                            </div>
+                            <button id="reset-filters" class="filter-button">Reset Filters</button>
+                        </div>
+                        <div id="beast-list" class="list-container" aria-label="Beast list">
+                            <!-- Beast list items will be populated here -->
+                            <div class="list-empty">Loading beasts...</div>
+                        </div>
+                    </div>
+                    <div class="main-content">
+                        <div id="statblock-display" class="statblock-container">
+                            <!-- Statblock will be displayed here -->
+                            <div class="statblock-placeholder">Select a beast to view its statblock</div>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="wildshape-button" class="action-button" disabled>Wildshape</button>
+                            <button id="conjure-button" class="action-button" disabled>Conjure Animals</button>
+                            <button id="favorite-button" class="action-button" disabled>Add to Favorites</button>
+                        </div>
+                        <div id="favorites-container" class="favorites-container">
+                            <h3>Favorites</h3>
+                            <div id="favorites-list" class="favorites-list">
+                                <!-- Favorite beasts will be displayed here -->
+                                <div class="list-empty">No favorites yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Wildshape Tab -->
+            <section id="wildshape-tab" class="tab-content" role="tabpanel" aria-labelledby="label-wildshape">
+                <div class="wildshape-container">
+                    <!-- Wildshape content will be added later -->
+                    <div class="placeholder">Select a beast from the Statblocks tab and click 'Wildshape'</div>
+                </div>
+            </section>
+            
+            <!-- Conjure Animals Tab -->
+            <section id="conjure-tab" class="tab-content" role="tabpanel" aria-labelledby="label-conjure">
+                <div class="conjure-container">
+                    <!-- Conjure Animals content will be added later -->
+                    <div class="placeholder">Select a beast from the Statblocks tab and click 'Conjure Animals'</div>
+                </div>
+            </section>
+            
+            <!-- Spells Tab -->
+            <section id="spells-tab" class="tab-content" role="tabpanel" aria-labelledby="label-spells">
+                <div class="spells-container">
+                    <!-- Spells content will be added later -->
+                    <div class="placeholder">Spell management coming soon</div>
+                </div>
+            </section>
+            
+            <!-- Dice Roller Tab -->
+            <section id="dice-tab" class="tab-content" role="tabpanel" aria-labelledby="label-dice">
+                <div class="dice-container">
+                    <!-- Dice Roller content will be added later -->
+                    <div class="placeholder">Dice roller coming soon</div>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>The Druid's Wildshape & Conjure Animals Assistant - A D&D 5e Tool</p>
+        </footer>
+    </div>
+    
+    <!-- JavaScript imports -->
+    <script src="js/components/tabs.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
