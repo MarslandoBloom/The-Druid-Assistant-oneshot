@@ -95,7 +95,11 @@ const SearchBarComponent = (function() {
      */
     const executeSearch = function(query) {
         // Publish search event with query
-        EventSystem.publish('search:performed', query);
+        // Use consistent format with app.js search events
+        EventManager.publish('search:performed', {
+            tab: 'statblock',
+            term: query
+        });
     };
     
     /**

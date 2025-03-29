@@ -14,6 +14,11 @@ const StatblockModule = (function() {
     let virtualListContainer;
     let virtualListContent;
     let favoritesListElement;
+    let selectionHistory = [];
+    let historyPosition = -1;
+    let recentlyViewedBeasts = [];
+    const MAX_RECENT_BEASTS = 5;
+    const MAX_HISTORY = 20;
     
     // Virtual list settings
     const ITEM_HEIGHT = 44; // Height of each beast item in pixels
@@ -34,14 +39,16 @@ const StatblockModule = (function() {
         setupVirtualList();
         
         // Subscribe to events
-        EventSystem.subscribe('database:ready', loadBeasts);
-        EventSystem.subscribe('search:performed', handleSearch);
-        EventSystem.subscribe('filter:changed', handleFilterChange);
-        EventSystem.subscribe('favorite:added', updateFavoritesList);
-        EventSystem.subscribe('favorite:removed', updateFavoritesList);
+        EventManager.subscribe(EventManager.EVENTS.DATA_LOAD_COMPLETE, loadBeasts);
+        EventManager.subscribe('database:ready', loadBeasts);
+        EventManager.subscribe('search:performed', handleSearch);
+        EventManager.subscribe('filter:changed', handleFilterChange);
+        EventManager.subscribe('favorite:added', updateFavoritesList);
+        EventManager.subscribe('favorite:removed', updateFavoritesList);
+        EventManager.subscribe('tab:changed', handleTabChange);
         
-        // If database is already ready, load beasts
-        if (Database.isReady()) {
+        // If database is already connected, load beasts
+        if (Database.isConnected()) {
             loadBeasts();
         }
         
@@ -50,6 +57,145 @@ const StatblockModule = (function() {
         
         // Set up window events
         window.addEventListener('hashchange', handleHashChange);
+        
+        // Setup keyboard shortcuts
+        setupKeyboardShortcuts();
+        
+        // Load recently viewed beasts
+        loadRecentlyViewedBeasts();
+    };
+    
+    /**
+     * Set up keyboard shortcuts for navigation
+     */
+    const setupKeyboardShortcuts = function() {
+        document.addEventListener('keydown', function(event) {
+            // Only process when statblock tab is active
+            const statblockTab = document.getElementById('statblock-tab');
+            if (!statblockTab || !statblockTab.classList.contains('active')) return;
+            
+            // Handle navigation keys
+            switch(event.key) {
+                case 'ArrowUp':
+                    navigateBeastList(-1);
+                    event.preventDefault();
+                    break;
+                case 'ArrowDown':
+                    navigateBeastList(1);
+                    event.preventDefault();
+                    break;
+                case 'PageUp':
+                    navigateBeastList(-10);
+                    event.preventDefault();
+                    break;
+                case 'PageDown':
+                    navigateBeastList(10);
+                    event.preventDefault();
+                    break;
+                case 'Home':
+                    navigateBeastList('first');
+                    event.preventDefault();
+                    break;
+                case 'End':
+                    navigateBeastList('last');
+                    event.preventDefault();
+                    break;
+                case 'Backspace':
+                    // Go back in history
+                    if (event.altKey && historyPosition > 0) {
+                        navigateHistory(-1);
+                        event.preventDefault();
+                    }
+                    break;
+                case 'ArrowLeft':
+                    // Go back in history with Alt+Left
+                    if (event.altKey && historyPosition > 0) {
+                        navigateHistory(-1);
+                        event.preventDefault();
+                    }
+                    break;
+                case 'ArrowRight':
+                    // Go forward in history with Alt+Right
+                    if (event.altKey && historyPosition < selectionHistory.length - 1) {
+                        navigateHistory(1);
+                        event.preventDefault();
+                    }
+                    break;
+                case 'f':
+                    // Toggle favorite with Alt+F
+                    if (event.altKey && selectedBeastId) {
+                        toggleFavorite(selectedBeastId);
+                        event.preventDefault();
+                    }
+                    break;
+                case 'w':
+                    // Wildshape with Alt+W
+                    if (event.altKey && selectedBeastId) {
+                        switchToWildshape();
+                        event.preventDefault();
+                    }
+                    break;
+                case 'c':
+                    // Conjure with Alt+C
+                    if (event.altKey && selectedBeastId) {
+                        switchToConjure();
+                        event.preventDefault();
+                    }
+                    break;
+            }
+        });
+    };
+    
+    /**
+     * Navigate the beast list by a relative number of items
+     * @param {number|string} delta - Number of items to move, or 'first'/'last'
+     */
+    const navigateBeastList = function(delta) {
+        if (filteredList.length === 0) return;
+        
+        let index;
+        
+        if (delta === 'first') {
+            index = 0;
+        } else if (delta === 'last') {
+            index = filteredList.length - 1;
+        } else {
+            // Find current index
+            const currentIndex = selectedBeastId ? 
+                filteredList.findIndex(beast => beast.id === selectedBeastId) : -1;
+            
+            // Calculate new index
+            index = currentIndex + delta;
+            index = Math.max(0, Math.min(filteredList.length - 1, index));
+            
+            // If current index not found or unchanged, default to first item
+            if (currentIndex === -1 || index === currentIndex) {
+                index = delta > 0 ? 0 : filteredList.length - 1;
+            }
+        }
+        
+        // Select the beast at the new index
+        selectBeast(filteredList[index].id);
+        
+        // Ensure selected item is visible
+        scrollToSelectedBeast();
+    };
+    
+    /**
+     * Navigate through selection history
+     * @param {number} delta - Direction to move in history (-1 for back, 1 for forward)
+     */
+    const navigateHistory = function(delta) {
+        if (selectionHistory.length === 0) return;
+        
+        historyPosition += delta;
+        historyPosition = Math.max(0, Math.min(selectionHistory.length - 1, historyPosition));
+        
+        const beastId = selectionHistory[historyPosition];
+        if (beastId) {
+            // Select without adding to history again
+            selectBeastWithoutHistory(beastId);
+        }
     };
     
     /**
@@ -101,6 +247,18 @@ const StatblockModule = (function() {
     };
     
     /**
+     * Handle tab change event
+     * @param {string} tabId - The ID of the newly active tab
+     */
+    const handleTabChange = function(tabId) {
+        // If switching to statblock tab and we have a selection, ensure it's visible
+        if (tabId === 'statblock-tab' && selectedBeastId) {
+            // Defer scrolling to next tick to ensure DOM is updated
+            setTimeout(scrollToSelectedBeast, 0);
+        }
+    };
+    
+    /**
      * Load beasts from database
      */
     const loadBeasts = function() {
@@ -122,7 +280,15 @@ const StatblockModule = (function() {
             // Update favorites list
             updateFavoritesList();
             
+            // Update recently viewed list if we have items
+            if (recentlyViewedBeasts.length > 0) {
+                updateRecentlyViewedList();
+            }
+            
             hideLoading();
+            
+            // Notify that beasts are loaded
+            EventManager.publish(EventManager.EVENTS.DATA_LOAD_COMPLETE, { count: beastList.length });
         }).catch(error => {
             console.error('Error loading beasts:', error);
             showEmptyState('Error loading beasts. Please try reloading the page.');
@@ -214,12 +380,16 @@ const StatblockModule = (function() {
     
     /**
      * Apply search to the filtered beast list
-     * @param {string} query - The search query
+     * @param {string|Object} query - The search query or query object
      */
     const applySearch = function(query) {
         if (!query) return;
         
-        const queryLower = query.toLowerCase();
+        // Handle both string queries and object format from EventManager
+        const queryText = typeof query === 'string' ? query : (query.term || '');
+        if (!queryText) return;
+        
+        const queryLower = queryText.toLowerCase();
         
         filteredList = filteredList.filter(beast => {
             // Search by name
@@ -229,6 +399,16 @@ const StatblockModule = (function() {
             
             // Search by type
             if (beast.type.toLowerCase().includes(queryLower)) {
+                return true;
+            }
+            
+            // Search by CR
+            if (beast.cr.toString().includes(queryLower)) {
+                return true;
+            }
+            
+            // Search by size
+            if (beast.size.toLowerCase().includes(queryLower)) {
                 return true;
             }
             
@@ -244,6 +424,11 @@ const StatblockModule = (function() {
                 action.name.toLowerCase().includes(queryLower) || 
                 action.description.toLowerCase().includes(queryLower)
             )) {
+                return true;
+            }
+            
+            // Search in environment (if present)
+            if (beast.environment && beast.environment.toLowerCase().includes(queryLower)) {
                 return true;
             }
             
@@ -277,6 +462,12 @@ const StatblockModule = (function() {
         if (selectedBeastId) {
             scrollToSelectedBeast();
         }
+        
+        // Add result count
+        const resultCount = document.createElement('div');
+        resultCount.className = 'result-count';
+        resultCount.textContent = `${filteredList.length} beasts found`;
+        virtualListContainer.insertAdjacentElement('beforebegin', resultCount);
     };
     
     /**
@@ -337,25 +528,301 @@ const StatblockModule = (function() {
             }
         });
         
+        // Create left content (name and type/size)
+        const leftContent = document.createElement('div');
+        leftContent.className = 'beast-item-left';
+        
         // Beast name
         const beastName = document.createElement('div');
         beastName.className = 'beast-name';
         beastName.textContent = beast.name;
+        
+        // Beast size and type (smaller text)
+        const beastType = document.createElement('div');
+        beastType.className = 'beast-type';
+        beastType.textContent = `${beast.size} ${beast.type}`;
+        
+        leftContent.appendChild(beastName);
+        leftContent.appendChild(beastType);
+        
+        // Create right content (CR and favorite button)
+        const rightContent = document.createElement('div');
+        rightContent.className = 'beast-item-right';
         
         // Beast CR
         const beastCr = document.createElement('div');
         beastCr.className = 'beast-cr';
         beastCr.textContent = `CR ${beast.cr}`;
         
-        beastItem.appendChild(beastName);
-        beastItem.appendChild(beastCr);
+        // Add quick favorite toggle
+        const favoriteBtn = document.createElement('button');
+        favoriteBtn.className = 'favorite-button';
+        favoriteBtn.innerHTML = '★';
+        favoriteBtn.title = 'Add to favorites';
+        favoriteBtn.setAttribute('aria-label', 'Toggle favorite');
         
-        // Add click handler
+        // Check favorite status and update button
+        UserStore.isFavorite(beast.id).then(isFavorite => {
+            if (isFavorite) {
+                favoriteBtn.classList.add('active');
+                favoriteBtn.title = 'Remove from favorites';
+            }
+        });
+        
+        // Add favorite button event
+        favoriteBtn.addEventListener('click', function(event) {
+            event.stopPropagation(); // Prevent beast selection
+            toggleFavorite(beast.id);
+        });
+        
+        rightContent.appendChild(beastCr);
+        rightContent.appendChild(favoriteBtn);
+        
+        // Add to item
+        beastItem.appendChild(leftContent);
+        beastItem.appendChild(rightContent);
+        
+        // Add click handler for beast selection
         beastItem.addEventListener('click', function() {
             selectBeast(beast.id);
         });
         
+        // Add double-click handler for wildshape
+        beastItem.addEventListener('dblclick', function() {
+            selectBeast(beast.id);
+            switchToWildshape();
+        });
+        
+        // Add right-click contextmenu
+        beastItem.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+            showBeastContextMenu(event, beast);
+        });
+        
         return beastItem;
+    };
+    
+    /**
+     * Show context menu for a beast
+     * @param {Event} event - The triggering event
+     * @param {Object} beast - The beast data
+     */
+    const showBeastContextMenu = function(event, beast) {
+        // First select the beast
+        selectBeast(beast.id);
+        
+        // Create context menu
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.style.position = 'absolute';
+        menu.style.left = `${event.pageX}px`;
+        menu.style.top = `${event.pageY}px`;
+        
+        // Calculate CR-dependent actions
+        const cr = parseFloat(beast.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+        const canWildshape = cr <= 1; // Standard druid wildshape limit
+        const canConjure = cr <= 2; // Conjure Animals limit
+        
+        // Check favorite status
+        UserStore.isFavorite(beast.id).then(isFavorite => {
+            // Add menu items
+            const menuItems = [
+                {
+                    text: canWildshape ? 'Wildshape into this Beast' : 'Wildshape (CR too high)',
+                    handler: canWildshape ? switchToWildshape : null,
+                    disabled: !canWildshape
+                },
+                {
+                    text: canConjure ? 'Conjure this Beast' : 'Conjure (CR too high)',
+                    handler: canConjure ? switchToConjure : null,
+                    disabled: !canConjure
+                },
+                {
+                    text: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+                    handler: () => toggleFavorite(beast.id)
+                },
+                {
+                    text: 'Copy Beast Name',
+                    handler: () => navigator.clipboard.writeText(beast.name)
+                }
+            ];
+            
+            // Create menu items
+            menuItems.forEach(item => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'context-menu-item';
+                if (item.disabled) menuItem.classList.add('disabled');
+                menuItem.textContent = item.text;
+                
+                if (item.handler && !item.disabled) {
+                    menuItem.addEventListener('click', () => {
+                        item.handler();
+                        removeContextMenu();
+                    });
+                }
+                
+                menu.appendChild(menuItem);
+            });
+            
+            // Add to document
+            document.body.appendChild(menu);
+            
+            // Handle closing the menu
+            const removeContextMenu = () => {
+                if (menu.parentNode) {
+                    menu.parentNode.removeChild(menu);
+                }
+                document.removeEventListener('click', removeContextMenu);
+                document.removeEventListener('contextmenu', removeContextMenu);
+            };
+            
+            // Close on any click or another context menu
+            setTimeout(() => {
+                document.addEventListener('click', removeContextMenu);
+                document.addEventListener('contextmenu', removeContextMenu);
+            }, 0);
+        });
+    };
+    
+    /**
+     * Toggle favorite status for a beast
+     * @param {string} beastId - The beast ID to toggle
+     */
+    const toggleFavorite = function(beastId) {
+        if (!beastId) return;
+        
+        // Get the beast data
+        const beast = beastList.find(b => b.id === beastId);
+        if (!beast) return;
+        
+        UserStore.isFavorite(beastId).then(isFavorite => {
+            if (isFavorite) {
+                // Remove from favorites
+                UserStore.removeFavorite(beastId).then(() => {
+                    // Update favorites list
+                    updateFavoritesList();
+                    
+                    // Update the beast item in the list if visible
+                    updateBeastItemFavoriteStatus(beastId, false);
+                    
+                    // Update favorite button in the statblock if this is the selected beast
+                    if (beastId === selectedBeastId) {
+                        const favoriteButton = document.getElementById('favorite-button');
+                        if (favoriteButton) {
+                            favoriteButton.textContent = 'Add to Favorites';
+                            favoriteButton.classList.remove('active');
+                        }
+                    }
+                    
+                    // Notify user
+                    UIUtils.showNotification(`Removed ${beast.name} from favorites`, 'info');
+                    
+                    // Publish event
+                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_REMOVED, beast);
+                });
+            } else {
+                // Add to favorites
+                UserStore.addFavorite(beastId).then(() => {
+                    // Update favorites list
+                    updateFavoritesList();
+                    
+                    // Update the beast item in the list if visible
+                    updateBeastItemFavoriteStatus(beastId, true);
+                    
+                    // Update favorite button in the statblock if this is the selected beast
+                    if (beastId === selectedBeastId) {
+                        const favoriteButton = document.getElementById('favorite-button');
+                        if (favoriteButton) {
+                            favoriteButton.textContent = 'Remove from Favorites';
+                            favoriteButton.classList.add('active');
+                        }
+                    }
+                    
+                    // Notify user
+                    UIUtils.showNotification(`Added ${beast.name} to favorites`, 'success');
+                    
+                    // Publish event
+                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_ADDED, beast);
+                });
+            }
+        });
+    };
+    
+    /**
+     * Update favorite status in the UI for a beast item
+     * @param {string} beastId - The beast ID
+     * @param {boolean} isFavorite - Whether the beast is favorited
+     */
+    const updateBeastItemFavoriteStatus = function(beastId, isFavorite) {
+        // Find beast item in the visible list
+        const beastItem = beastListElement.querySelector(`.beast-item[data-id="${beastId}"]`);
+        
+        if (beastItem) {
+            // Update the item's favorite class
+            if (isFavorite) {
+                beastItem.classList.add('favorite');
+            } else {
+                beastItem.classList.remove('favorite');
+            }
+            
+            // Update the favorite button
+            const favoriteBtn = beastItem.querySelector('.favorite-button');
+            if (favoriteBtn) {
+                if (isFavorite) {
+                    favoriteBtn.classList.add('active');
+                    favoriteBtn.title = 'Remove from favorites';
+                } else {
+                    favoriteBtn.classList.remove('active');
+                    favoriteBtn.title = 'Add to favorites';
+                }
+            }
+        }
+    };
+    
+    /**
+     * Switch to wildshape tab with current beast
+     */
+    const switchToWildshape = function() {
+        // Check if we have a selected beast
+        if (!selectedBeastId) return;
+        
+        // Get the beast data
+        const beast = beastList.find(beast => beast.id === selectedBeastId);
+        if (!beast) return;
+        
+        // Check CR limitations (standard Druid wildshape)
+        const cr = parseFloat(beast.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+        if (cr > 1) {
+            UIUtils.showNotification(`${beast.name} (CR ${beast.cr}) exceeds Wildshape CR limit of 1`, 'warning');
+            return;
+        }
+        
+        // Publish event to switch to wildshape tab with current beast
+        EventManager.publish(EventManager.EVENTS.TAB_CHANGED, { tabName: 'wildshape-tab' });
+        EventManager.publish('wildshape:start', beast);
+    };
+    
+    /**
+     * Switch to conjure animals tab with current beast
+     */
+    const switchToConjure = function() {
+        // Check if we have a selected beast
+        if (!selectedBeastId) return;
+        
+        // Get the beast data
+        const beast = beastList.find(beast => beast.id === selectedBeastId);
+        if (!beast) return;
+        
+        // Check CR limitations for Conjure Animals
+        const cr = parseFloat(beast.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+        if (cr > 2) {
+            UIUtils.showNotification(`${beast.name} (CR ${beast.cr}) exceeds Conjure Animals CR limit of 2`, 'warning');
+            return;
+        }
+        
+        // Publish event to switch to conjure tab with current beast
+        EventManager.publish(EventManager.EVENTS.TAB_CHANGED, { tabName: 'conjure-tab' });
+        EventManager.publish('conjure:start', beast);
     };
     
     /**
@@ -363,6 +830,47 @@ const StatblockModule = (function() {
      * @param {string} beastId - The ID of the beast to select
      */
     const selectBeast = function(beastId) {
+        // Don't reselect the same beast
+        if (beastId === selectedBeastId) return;
+        
+        // Find the beast in the list
+        const beast = beastList.find(beast => beast.id === beastId);
+        if (!beast) return;
+        
+        // Update selection history
+        if (selectionHistory.length > 0) {
+            // Truncate history if navigating backward then selecting a new beast
+            if (historyPosition < selectionHistory.length - 1) {
+                selectionHistory = selectionHistory.slice(0, historyPosition + 1);
+            }
+            
+            // Add to history if different from last selection
+            if (selectionHistory[selectionHistory.length - 1] !== beastId) {
+                // Keep history at max length
+                if (selectionHistory.length >= MAX_HISTORY) {
+                    selectionHistory.shift();
+                }
+                selectionHistory.push(beastId);
+                historyPosition = selectionHistory.length - 1;
+            }
+        } else {
+            // First item in history
+            selectionHistory.push(beastId);
+            historyPosition = 0;
+        }
+        
+        // Perform the actual selection
+        selectBeastWithoutHistory(beastId);
+        
+        // Add to recently viewed
+        addToRecentlyViewed(beast);
+    };
+    
+    /**
+     * Select a beast without affecting history (used for history navigation)
+     * @param {string} beastId - The ID of the beast to select
+     */
+    const selectBeastWithoutHistory = function(beastId) {
         // Deselect currently selected beast
         const currentlySelected = beastListElement.querySelector('.beast-item.selected');
         if (currentlySelected) {
@@ -385,7 +893,136 @@ const StatblockModule = (function() {
         const beast = beastList.find(beast => beast.id === beastId);
         if (beast) {
             // Publish beast selected event
-            EventSystem.publish('beast:selected', beast);
+            EventManager.publish(EventManager.EVENTS.BEAST_SELECTED, beast);
+        }
+    };
+    
+    /**
+     * Add a beast to recently viewed list
+     * @param {Object} beast - The beast to add
+     */
+    const addToRecentlyViewed = function(beast) {
+        // Remove if already in list
+        recentlyViewedBeasts = recentlyViewedBeasts.filter(b => b.id !== beast.id);
+        
+        // Add to front of list
+        recentlyViewedBeasts.unshift(beast);
+        
+        // Keep list at max length
+        if (recentlyViewedBeasts.length > MAX_RECENT_BEASTS) {
+            recentlyViewedBeasts.pop();
+        }
+        
+        // Save to localStorage
+        saveRecentlyViewedBeasts();
+        
+        // Update the UI
+        updateRecentlyViewedList();
+    };
+    
+    /**
+     * Save recently viewed beasts to localStorage
+     */
+    const saveRecentlyViewedBeasts = function() {
+        try {
+            // Only save IDs to keep storage small
+            const recentIds = recentlyViewedBeasts.map(beast => beast.id);
+            localStorage.setItem('recentlyViewedBeasts', JSON.stringify(recentIds));
+        } catch (error) {
+            console.error('Error saving recently viewed beasts:', error);
+        }
+    };
+    
+    /**
+     * Load recently viewed beasts from localStorage
+     */
+    const loadRecentlyViewedBeasts = function() {
+        try {
+            const recentIds = JSON.parse(localStorage.getItem('recentlyViewedBeasts') || '[]');
+            
+            // We'll restore the full beast objects when beasts are loaded
+            if (recentIds.length > 0) {
+                // Store IDs until beasts are loaded
+                recentlyViewedBeasts = recentIds.map(id => ({ id }));
+                
+                // If beasts are already loaded, populate the full objects
+                if (beastList.length > 0) {
+                    updateRecentlyViewedList();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading recently viewed beasts:', error);
+            recentlyViewedBeasts = [];
+        }
+    };
+    
+    /**
+     * Update the recently viewed list with full beast objects
+     */
+    const updateRecentlyViewedList = function() {
+        // Replace ID-only objects with full beast objects
+        recentlyViewedBeasts = recentlyViewedBeasts
+            .map(recentBeast => {
+                if (recentBeast.name) return recentBeast; // Already have full object
+                const fullBeast = beastList.find(b => b.id === recentBeast.id);
+                return fullBeast || null; // Return full beast or null if not found
+            })
+            .filter(beast => beast !== null); // Remove any beasts that weren't found
+        
+        // Create or update the recently viewed container
+        let recentContainer = document.querySelector('.recently-viewed-container');
+        
+        if (!recentContainer && recentlyViewedBeasts.length > 0) {
+            // Create container if it doesn't exist
+            recentContainer = document.createElement('div');
+            recentContainer.className = 'recently-viewed-container';
+            
+            const heading = document.createElement('h3');
+            heading.textContent = 'Recently Viewed';
+            recentContainer.appendChild(heading);
+            
+            const recentList = document.createElement('div');
+            recentList.className = 'recently-viewed-list';
+            recentContainer.appendChild(recentList);
+            
+            // Add before favorites container
+            const favoritesContainer = document.querySelector('.favorites-container');
+            if (favoritesContainer) {
+                favoritesContainer.parentNode.insertBefore(recentContainer, favoritesContainer);
+            } else {
+                // Fallback: add to main content
+                const mainContent = document.querySelector('.main-content');
+                if (mainContent) {
+                    mainContent.appendChild(recentContainer);
+                }
+            }
+        } else if (recentContainer) {
+            // Update existing container
+            const recentList = recentContainer.querySelector('.recently-viewed-list');
+            if (recentList) {
+                recentList.innerHTML = '';
+                
+                // Add beasts to the list
+                recentlyViewedBeasts.forEach(beast => {
+                    const recentItem = document.createElement('div');
+                    recentItem.className = 'recent-item';
+                    recentItem.textContent = beast.name;
+                    
+                    // Add click handler
+                    recentItem.addEventListener('click', function() {
+                        selectBeast(beast.id);
+                    });
+                    
+                    recentList.appendChild(recentItem);
+                });
+                
+                // Show or hide based on content
+                if (recentlyViewedBeasts.length === 0) {
+                    recentContainer.style.display = 'none';
+                } else {
+                    recentContainer.style.display = 'block';
+                }
+            }
         }
     };
     
@@ -438,12 +1075,80 @@ const StatblockModule = (function() {
             favoriteBeasts.forEach(beast => {
                 const favoriteItem = document.createElement('div');
                 favoriteItem.className = 'favorite-item';
-                favoriteItem.textContent = beast.name;
                 
-                // Add click handler
+                // More complex structure for favorite items
+                const nameElement = document.createElement('span');
+                nameElement.className = 'favorite-name';
+                nameElement.textContent = beast.name;
+                
+                const crElement = document.createElement('span');
+                crElement.className = 'favorite-cr';
+                crElement.textContent = `CR ${beast.cr}`;
+                
+                // Action buttons for quick access
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'favorite-actions';
+                
+                // Calculate beast CR to determine valid actions
+                const cr = parseFloat(beast.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+                
+                // Wildshape button (only for CR <= 1)
+                if (cr <= 1) {
+                    const wildshapeBtn = document.createElement('button');
+                    wildshapeBtn.className = 'favorite-action wildshape-action';
+                    wildshapeBtn.title = 'Wildshape into this beast';
+                    wildshapeBtn.textContent = 'W';
+                    wildshapeBtn.setAttribute('aria-label', 'Wildshape');
+                    
+                    wildshapeBtn.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        selectBeast(beast.id);
+                        switchToWildshape();
+                    });
+                    
+                    actionButtons.appendChild(wildshapeBtn);
+                }
+                
+                // Conjure button (only for CR <= 2)
+                if (cr <= 2) {
+                    const conjureBtn = document.createElement('button');
+                    conjureBtn.className = 'favorite-action conjure-action';
+                    conjureBtn.title = 'Conjure this beast';
+                    conjureBtn.textContent = 'C';
+                    conjureBtn.setAttribute('aria-label', 'Conjure');
+                    
+                    conjureBtn.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        selectBeast(beast.id);
+                        switchToConjure();
+                    });
+                    
+                    actionButtons.appendChild(conjureBtn);
+                }
+                
+                // Remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'favorite-action remove-action';
+                removeBtn.title = 'Remove from favorites';
+                removeBtn.textContent = '×';
+                removeBtn.setAttribute('aria-label', 'Remove from favorites');
+                
+                removeBtn.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    toggleFavorite(beast.id);
+                });
+                
+                actionButtons.appendChild(removeBtn);
+                
+                // Add main click handler for selection
                 favoriteItem.addEventListener('click', function() {
                     selectBeast(beast.id);
                 });
+                
+                // Add all parts to the favorite item
+                favoriteItem.appendChild(nameElement);
+                favoriteItem.appendChild(crElement);
+                favoriteItem.appendChild(actionButtons);
                 
                 favoritesListElement.appendChild(favoriteItem);
             });
@@ -503,11 +1208,140 @@ const StatblockModule = (function() {
         });
     };
     
+    /**
+     * Sort the beast list
+     * @param {string} sortBy - Property to sort by ('name', 'cr', 'type', 'size')
+     * @param {boolean} ascending - Sort direction (true for ascending, false for descending)
+     */
+    const sortBeastList = function(sortBy = 'cr', ascending = false) {
+        if (beastList.length === 0) return;
+        
+        switch (sortBy) {
+            case 'name':
+                beastList.sort((a, b) => {
+                    return ascending ? 
+                        a.name.localeCompare(b.name) : 
+                        b.name.localeCompare(a.name);
+                });
+                break;
+                
+            case 'cr':
+                beastList.sort((a, b) => {
+                    const crA = parseFloat(a.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+                    const crB = parseFloat(b.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+                    return ascending ? crA - crB : crB - crA;
+                });
+                break;
+                
+            case 'type':
+                beastList.sort((a, b) => {
+                    return ascending ? 
+                        a.type.localeCompare(b.type) : 
+                        b.type.localeCompare(a.type);
+                });
+                break;
+                
+            case 'size':
+                // Size order: Tiny, Small, Medium, Large, Huge, Gargantuan
+                const sizeOrder = { 'Tiny': 0, 'Small': 1, 'Medium': 2, 'Large': 3, 'Huge': 4, 'Gargantuan': 5 };
+                beastList.sort((a, b) => {
+                    const sizeA = sizeOrder[a.size] || 0;
+                    const sizeB = sizeOrder[b.size] || 0;
+                    return ascending ? sizeA - sizeB : sizeB - sizeA;
+                });
+                break;
+        }
+        
+        // Re-apply current filters and search
+        applyFiltersAndSearch(FiltersComponent.getFilters(), SearchBarComponent.getSearchQuery());
+    };
+    
+    /**
+     * Get available beast types from the current dataset
+     * @returns {string[]} Array of unique beast types
+     */
+    const getAvailableBeastTypes = function() {
+        if (beastList.length === 0) return [];
+        
+        // Create a Set to eliminate duplicates
+        const typesSet = new Set(beastList.map(beast => beast.type));
+        
+        // Convert Set to Array and sort alphabetically
+        return [...typesSet].sort();
+    };
+    
+    /**
+     * Get available environments from the current dataset
+     * @returns {string[]} Array of unique environments
+     */
+    const getAvailableEnvironments = function() {
+        if (beastList.length === 0) return [];
+        
+        // Create a Set to eliminate duplicates
+        const environmentsSet = new Set();
+        
+        // Parse environments from all beasts
+        beastList.forEach(beast => {
+            if (beast.environment) {
+                const environments = beast.environment.split(', ');
+                environments.forEach(env => environmentsSet.add(env.trim()));
+            }
+        });
+        
+        // Convert Set to Array and sort alphabetically
+        return [...environmentsSet].sort();
+    };
+    
+    /**
+     * Create and show a comparison view of multiple beasts
+     * @param {string[]} beastIds - Array of beast IDs to compare
+     */
+    const showBeastComparison = function(beastIds) {
+        if (!beastIds || beastIds.length === 0) return;
+        
+        // Get beast objects
+        const beastsToCompare = beastIds.map(id => beastList.find(beast => beast.id === id))
+            .filter(beast => beast !== undefined);
+        
+        if (beastsToCompare.length === 0) return;
+        
+        // Create comparison container
+        const comparisonContainer = document.createElement('div');
+        comparisonContainer.className = 'comparison-container';
+        
+        // Add statblocks for each beast
+        beastsToCompare.forEach(beast => {
+            const statblock = StatblockComponent.createStatblock(beast);
+            comparisonContainer.appendChild(statblock);
+        });
+        
+        // Show in modal
+        UIUtils.showModal(comparisonContainer, {
+            title: 'Beast Comparison',
+            width: '90%',
+            height: '80%',
+            buttons: [
+                {
+                    text: 'Close',
+                    className: 'primary-button',
+                    action: () => {}
+                }
+            ]
+        });
+    };
+    
     // Public API
     return {
         init,
         getBeastById,
-        selectBeast
+        selectBeast,
+        updateFavoritesList,
+        sortBeastList,
+        getAvailableBeastTypes,
+        getAvailableEnvironments,
+        showBeastComparison,
+        switchToWildshape,
+        switchToConjure
     };
 })();
 

@@ -58,3 +58,20 @@ This application helps Druid players with:
   - URL hash-based navigation for direct linking to beasts
   - Responsive statblock layout with proper typography and spacing
 - Updated the main HTML to include new components and CSS
+
+### Stage 5: Bug Fixes and Improvements (March 29, 2025)
+- Fixed event management system references (changed EventSystem to EventManager throughout code)
+- Fixed CORS issues with sample data loading by embedding sample beasts and spells directly in code
+- Added hardcoded sample beasts (Giant Elk, Brown Bear, Wolf) for development/testing
+- Added hardcoded sample spells (Shillelagh, Cure Wounds, Moonbeam) for development/testing
+- Improved event handling between components for better reliability
+- Fixed browser console errors and warnings
+
+### Stage 5.1: Critical Bug Fixes (March 29, 2025)
+- Fixed `Database.isReady is not a function` error by updating to use `Database.isConnected()` method
+- Fixed `EventSystem is not defined` error in searchBar.js by replacing with correct `EventManager` reference
+- Fixed type error in search functionality to handle both string and object query formats
+- Standardized search event data format across all components for consistency
+- Improved robustness of event handling across components
+- Enhanced backwards compatibility between different event publishing methods
+- Updated error handling to provide better feedback during search operations

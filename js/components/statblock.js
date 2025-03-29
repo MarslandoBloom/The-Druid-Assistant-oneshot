@@ -14,7 +14,7 @@ const StatblockComponent = (function() {
         statblockContainer = document.getElementById('statblock-display');
         
         // Subscribe to events
-        EventSystem.subscribe('beast:selected', handleBeastSelected);
+        EventManager.subscribe(EventManager.EVENTS.BEAST_SELECTED, handleBeastSelected);
         
         // Initialize action buttons
         initActionButtons();
@@ -98,8 +98,8 @@ const StatblockComponent = (function() {
         if (!currentBeast) return;
         
         // Publish event to switch to wildshape tab with current beast
-        EventSystem.publish('tab:switch', 'wildshape-tab');
-        EventSystem.publish('wildshape:start', currentBeast);
+        EventManager.publish(EventManager.EVENTS.TAB_CHANGED, { tabName: 'wildshape-tab' });
+        EventManager.publish('wildshape:start', currentBeast);
     };
     
     /**
@@ -109,8 +109,8 @@ const StatblockComponent = (function() {
         if (!currentBeast) return;
         
         // Publish event to switch to conjure tab with current beast
-        EventSystem.publish('tab:switch', 'conjure-tab');
-        EventSystem.publish('conjure:start', currentBeast);
+        EventManager.publish(EventManager.EVENTS.TAB_CHANGED, { tabName: 'conjure-tab' });
+        EventManager.publish('conjure:start', currentBeast);
     };
     
     /**
@@ -124,14 +124,14 @@ const StatblockComponent = (function() {
                 // Remove from favorites
                 UserStore.removeFavorite(currentBeast.id).then(() => {
                     updateFavoriteButtonState(currentBeast);
-                    EventSystem.publish('favorite:removed', currentBeast);
+                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_REMOVED, currentBeast);
                     UIUtils.showNotification(`Removed ${currentBeast.name} from favorites`, 'info');
                 });
             } else {
                 // Add to favorites
                 UserStore.addFavorite(currentBeast.id).then(() => {
                     updateFavoriteButtonState(currentBeast);
-                    EventSystem.publish('favorite:added', currentBeast);
+                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_ADDED, currentBeast);
                     UIUtils.showNotification(`Added ${currentBeast.name} to favorites`, 'success');
                 });
             }

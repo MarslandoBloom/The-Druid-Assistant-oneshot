@@ -6,6 +6,11 @@ const UserStore = (function() {
     // Get store name from Database module
     const STORE_NAME = Database.STORES.USER_PREFS;
     
+    // Constants for settings keys
+    const KEYS = {
+        FAVORITES: 'favorites'
+    };
+    
     /**
      * Get a setting value
      * @param {string} key - Setting key
@@ -230,6 +235,77 @@ const UserStore = (function() {
     };
     
     /**
+     * Get all favorites
+     * @returns {Promise<string[]>} Promise resolving to array of favorite IDs
+     */
+    const getFavorites = async () => {
+        return getSetting(KEYS.FAVORITES, []);
+    };
+    
+    /**
+     * Check if an entity is favorited
+     * @param {string} id - Entity ID to check
+     * @returns {Promise<boolean>} Promise resolving to boolean indicating favorite status
+     */
+    const isFavorite = async (id) => {
+        const favorites = await getFavorites();
+        return favorites.includes(id);
+    };
+    
+    /**
+     * Add a favorite
+     * @param {string} id - Entity ID to add to favorites
+     * @returns {Promise<boolean>} Promise resolving to success indicator
+     */
+    const addFavorite = async (id) => {
+        if (!id) return false;
+        
+        const favorites = await getFavorites();
+        
+        // Check if already exists
+        if (favorites.includes(id)) {
+            return true; // Already a favorite
+        }
+        
+        // Add to favorites
+        favorites.push(id);
+        await setSetting(KEYS.FAVORITES, favorites);
+        
+        return true;
+    };
+    
+    /**
+     * Remove a favorite
+     * @param {string} id - Entity ID to remove from favorites
+     * @returns {Promise<boolean>} Promise resolving to success indicator
+     */
+    const removeFavorite = async (id) => {
+        if (!id) return false;
+        
+        const favorites = await getFavorites();
+        
+        // Check if exists
+        if (!favorites.includes(id)) {
+            return true; // Not a favorite, no action needed
+        }
+        
+        // Remove from favorites
+        const updatedFavorites = favorites.filter(fid => fid !== id);
+        await setSetting(KEYS.FAVORITES, updatedFavorites);
+        
+        return true;
+    };
+    
+    /**
+     * Clear all favorites
+     * @returns {Promise<boolean>} Promise resolving to success indicator
+     */
+    const clearFavorites = async () => {
+        await setSetting(KEYS.FAVORITES, []);
+        return true;
+    };
+    
+    /**
      * Get all settings
      * @returns {Promise} Resolves with all settings
      */
@@ -299,6 +375,13 @@ const UserStore = (function() {
         loadSearchHistory,
         addSearchToHistory,
         clearSearchHistory,
+        
+        // Favorites
+        getFavorites,
+        isFavorite,
+        addFavorite,
+        removeFavorite,
+        clearFavorites,
         
         // Import/Export
         getAllSettings,

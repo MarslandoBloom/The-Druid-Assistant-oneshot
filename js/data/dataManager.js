@@ -559,57 +559,210 @@ const DataManager = (function() {
                     error: null
                 };
                 
-                // Load sample beast data if enabled
+                // Since we can't load files directly with fetch due to CORS,
+                // we'll use some sample data for now
+                
+                // Sample beast data
                 if (settings.loadBeasts) {
                     try {
-                        const beastResponse = await fetch(SAMPLE_DATA.BEASTS);
-                        if (beastResponse.ok) {
-                            const beastContent = await beastResponse.text();
-                            const parsedBeasts = Parser.parseBeastMarkdown(beastContent);
-                            
-                            if (parsedBeasts.length > 0) {
-                                await BeastStore.addBeasts(parsedBeasts);
-                                result.beastsLoaded = parsedBeasts.length;
-                                console.log(`Loaded ${parsedBeasts.length} sample beasts`);
-                                
-                                // Publish event
-                                EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
-                                    source: 'sample',
-                                    type: 'beasts',
-                                    count: parsedBeasts.length
-                                });
+                        // Add a few sample beasts
+                        const sampleBeasts = [
+                            {
+                                id: 'giant-elk-001',
+                                name: 'Giant Elk',
+                                size: 'Huge',
+                                type: 'beast',
+                                alignment: 'unaligned',
+                                ac: '14 (natural armor)',
+                                hp: '42 (5d12 + 10)',
+                                speed: '60 ft.',
+                                abilities: {
+                                    str: { score: 19, modifier: '+4' },
+                                    dex: { score: 16, modifier: '+3' },
+                                    con: { score: 14, modifier: '+2' },
+                                    int: { score: 7, modifier: '-2' },
+                                    wis: { score: 14, modifier: '+2' },
+                                    cha: { score: 10, modifier: '+0' }
+                                },
+                                skills: 'Perception +4',
+                                senses: 'passive Perception 14',
+                                languages: 'Giant Elk, understands Common, Elvish, and Sylvan but can\'t speak them',
+                                cr: '2',
+                                traits: [
+                                    {
+                                        name: 'Charge',
+                                        description: 'If the elk moves at least 20 feet straight toward a target and then hits it with a ram attack on the same turn, the target takes an extra 7 (2d6) damage. If the target is a creature, it must succeed on a DC 14 Strength saving throw or be knocked prone.'
+                                    }
+                                ],
+                                actions: [
+                                    {
+                                        name: 'Ram',
+                                        description: 'Melee Weapon Attack: +6 to hit, reach 10 ft., one target. Hit: 11 (2d6 + 4) bludgeoning damage.'
+                                    },
+                                    {
+                                        name: 'Hooves',
+                                        description: 'Melee Weapon Attack: +6 to hit, reach 5 ft., one prone creature. Hit: 22 (4d8 + 4) bludgeoning damage.'
+                                    }
+                                ],
+                                environment: 'Forest, Grassland'
+                            },
+                            {
+                                id: 'brown-bear-001',
+                                name: 'Brown Bear',
+                                size: 'Large',
+                                type: 'beast',
+                                alignment: 'unaligned',
+                                ac: '11 (natural armor)',
+                                hp: '34 (4d10 + 12)',
+                                speed: '40 ft., climb 30 ft.',
+                                abilities: {
+                                    str: { score: 19, modifier: '+4' },
+                                    dex: { score: 10, modifier: '+0' },
+                                    con: { score: 16, modifier: '+3' },
+                                    int: { score: 2, modifier: '-4' },
+                                    wis: { score: 13, modifier: '+1' },
+                                    cha: { score: 7, modifier: '-2' }
+                                },
+                                skills: 'Perception +3',
+                                senses: 'passive Perception 13',
+                                languages: '',
+                                cr: '1',
+                                traits: [
+                                    {
+                                        name: 'Keen Smell',
+                                        description: 'The bear has advantage on Wisdom (Perception) checks that rely on smell.'
+                                    }
+                                ],
+                                actions: [
+                                    {
+                                        name: 'Multiattack',
+                                        description: 'The bear makes two attacks: one with its bite and one with its claws.'
+                                    },
+                                    {
+                                        name: 'Bite',
+                                        description: 'Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) piercing damage.'
+                                    },
+                                    {
+                                        name: 'Claws',
+                                        description: 'Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) slashing damage.'
+                                    }
+                                ],
+                                environment: 'Forest, Hill'
+                            },
+                            {
+                                id: 'wolf-001',
+                                name: 'Wolf',
+                                size: 'Medium',
+                                type: 'beast',
+                                alignment: 'unaligned',
+                                ac: '13 (natural armor)',
+                                hp: '11 (2d8 + 2)',
+                                speed: '40 ft.',
+                                abilities: {
+                                    str: { score: 12, modifier: '+1' },
+                                    dex: { score: 15, modifier: '+2' },
+                                    con: { score: 12, modifier: '+1' },
+                                    int: { score: 3, modifier: '-4' },
+                                    wis: { score: 12, modifier: '+1' },
+                                    cha: { score: 6, modifier: '-2' }
+                                },
+                                skills: 'Perception +3, Stealth +4',
+                                senses: 'passive Perception 13',
+                                languages: '',
+                                cr: '1/4',
+                                traits: [
+                                    {
+                                        name: 'Keen Hearing and Smell',
+                                        description: 'The wolf has advantage on Wisdom (Perception) checks that rely on hearing or smell.'
+                                    },
+                                    {
+                                        name: 'Pack Tactics',
+                                        description: 'The wolf has advantage on attack rolls against a creature if at least one of the wolf\'s allies is within 5 ft. of the creature and the ally isn\'t incapacitated.'
+                                    }
+                                ],
+                                actions: [
+                                    {
+                                        name: 'Bite',
+                                        description: 'Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.'
+                                    }
+                                ],
+                                environment: 'Forest, Hill, Grassland'
                             }
-                        } else {
-                            console.error('Failed to load sample beast data:', beastResponse.statusText);
-                        }
+                        ];
+                        
+                        await BeastStore.addBeasts(sampleBeasts);
+                        result.beastsLoaded = sampleBeasts.length;
+                        console.log(`Loaded ${sampleBeasts.length} sample beasts`);
+                        
+                        // Publish event
+                        EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
+                            source: 'sample',
+                            type: 'beasts',
+                            count: sampleBeasts.length
+                        });
                     } catch (error) {
                         console.error('Error loading sample beast data:', error);
                     }
                 }
                 
-                // Load sample spell data if enabled
+                // Sample spell data
                 if (settings.loadSpells) {
                     try {
-                        const spellResponse = await fetch(SAMPLE_DATA.SPELLS);
-                        if (spellResponse.ok) {
-                            const spellContent = await spellResponse.text();
-                            const parsedSpells = Parser.parseSpellMarkdown(spellContent);
-                            
-                            if (parsedSpells.length > 0) {
-                                await SpellStore.addSpells(parsedSpells);
-                                result.spellsLoaded = parsedSpells.length;
-                                console.log(`Loaded ${parsedSpells.length} sample spells`);
-                                
-                                // Publish event
-                                EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
-                                    source: 'sample',
-                                    type: 'spells',
-                                    count: parsedSpells.length
-                                });
+                        // Add some sample spells
+                        const sampleSpells = [
+                            {
+                                id: 'shillelagh-001',
+                                name: 'Shillelagh',
+                                level: 0,
+                                school: 'transmutation',
+                                castingTime: '1 bonus action',
+                                range: 'Touch',
+                                components: 'V, S, M (mistletoe, a shamrock leaf, and a club or quarterstaff)',
+                                duration: '1 minute',
+                                description: 'The wood of a club or quarterstaff you are holding is imbued with nature\'s power. For the duration, you can use your spellcasting ability instead of Strength for the attack and damage rolls of melee attacks using that weapon, and the weapon\'s damage die becomes a d8. The weapon also becomes magical, if it isn\'t already. The spell ends if you cast it again or if you let go of the weapon.',
+                                classes: ['Druid'],
+                                levelSchool: 'Transmutation cantrip'
+                            },
+                            {
+                                id: 'cure-wounds-001',
+                                name: 'Cure Wounds',
+                                level: 1,
+                                school: 'evocation',
+                                castingTime: '1 action',
+                                range: 'Touch',
+                                components: 'V, S',
+                                duration: 'Instantaneous',
+                                description: 'A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier. This spell has no effect on undead or constructs.',
+                                higherLevels: 'When you cast this spell using a spell slot of 2nd level or higher, the healing increases by 1d8 for each slot level above 1st.',
+                                classes: ['Bard', 'Cleric', 'Druid', 'Paladin', 'Ranger'],
+                                levelSchool: '1st-level evocation'
+                            },
+                            {
+                                id: 'moonbeam-001',
+                                name: 'Moonbeam',
+                                level: 2,
+                                school: 'evocation',
+                                castingTime: '1 action',
+                                range: '120 feet',
+                                components: 'V, S, M (several seeds of any moonseed plant and a piece of opalescent feldspar)',
+                                duration: 'Concentration, up to 1 minute',
+                                description: 'A silvery beam of pale light shines down in a 5-foot-radius, 40-foot-high cylinder centered on a point within range. Until the spell ends, dim light fills the cylinder.\n\nWhen a creature enters the spell\'s area for the first time on a turn or starts its turn there, it is engulfed in ghostly flames that cause searing pain, and it must make a Constitution saving throw. It takes 2d10 radiant damage on a failed save, or half as much damage on a successful one.\n\nShapechanger have disadvantage on this saving throw. If a shapechanger fails a saving throw against this spell, it also instantly reverts to its original form and can\'t assume a different form until it leaves the spell\'s light.\n\nOn each of your turns after you cast this spell, you can use an action to move the beam up to 60 feet in any direction.',
+                                higherLevels: 'When you cast this spell using a spell slot of 3rd level or higher, the damage increases by 1d10 for each slot level above 2nd.',
+                                classes: ['Druid'],
+                                levelSchool: '2nd-level evocation'
                             }
-                        } else {
-                            console.error('Failed to load sample spell data:', spellResponse.statusText);
-                        }
+                        ];
+                        
+                        await SpellStore.addSpells(sampleSpells);
+                        result.spellsLoaded = sampleSpells.length;
+                        console.log(`Loaded ${sampleSpells.length} sample spells`);
+                        
+                        // Publish event
+                        EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
+                            source: 'sample',
+                            type: 'spells',
+                            count: sampleSpells.length
+                        });
                     } catch (error) {
                         console.error('Error loading sample spell data:', error);
                     }

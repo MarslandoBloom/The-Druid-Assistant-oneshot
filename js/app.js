@@ -107,8 +107,11 @@ const DruidAssistant = (function() {
     const setupEventListeners = () => {
         // Listen for tab changes
         EventManager.subscribe(EventManager.EVENTS.TAB_CHANGED, handleTabChange);
+        
+        // Legacy DOM event listener (can be removed in future versions)
         document.addEventListener('tabChanged', (event) => {
-            EventManager.publish(EventManager.EVENTS.TAB_CHANGED, event.detail);
+            // We no longer need to publish from here since the TabManager now
+            // directly publishes through EventManager
         });
         
         // Import button click
@@ -373,6 +376,13 @@ const DruidAssistant = (function() {
             tab: 'statblock',
             term: searchTerm
         });
+
+        // For backwards compatibility with any components using search:performed
+        // Ensure we're using the same format for both events
+        EventManager.publish('search:performed', {
+            tab: 'statblock',
+            term: searchTerm
+        });
     };
     
     // Clear search
@@ -380,9 +390,15 @@ const DruidAssistant = (function() {
         elements.beastSearch.value = '';
         elements.clearSearch.style.display = 'none';
         
-        // Publish search cleared event
+        // Publish search cleared event with both event types for compatibility
         EventManager.publish(EventManager.EVENTS.SEARCH_CLEARED, {
             tab: 'statblock'
+        });
+        
+        // Also publish empty search term for backward compatibility
+        EventManager.publish('search:performed', {
+            tab: 'statblock',
+            term: ''
         });
         
         // This will trigger the search event with an empty term

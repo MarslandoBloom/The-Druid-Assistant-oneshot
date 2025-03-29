@@ -94,12 +94,21 @@ const TabManager = (function() {
     
     // Publish tab change event for other modules
     const publishTabChange = (tabId) => {
-        // Create and dispatch a custom event
+        const tabDetails = {
+            tabId: tabId,
+            tabName: tabId.replace('tab-', '')
+        };
+        
+        // Use EventManager to publish event
+        if (typeof EventManager !== 'undefined') {
+            EventManager.publish(EventManager.EVENTS.TAB_CHANGED, tabDetails);
+            // For backwards compatibility
+            EventManager.publish('tab:changed', tabDetails.tabName);
+        }
+        
+        // Create and dispatch a custom DOM event for legacy components
         const event = new CustomEvent('tabChanged', {
-            detail: {
-                tabId: tabId,
-                tabName: tabId.replace('tab-', '')
-            }
+            detail: tabDetails
         });
         document.dispatchEvent(event);
     };

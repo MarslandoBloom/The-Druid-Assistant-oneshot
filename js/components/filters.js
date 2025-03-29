@@ -175,7 +175,10 @@ const FiltersComponent = (function() {
      */
     const applyFilters = function() {
         // Publish filter changed event with current active filters
-        EventSystem.publish('filter:changed', activeFilters);
+        EventManager.publish(EventManager.EVENTS.FILTER_APPLIED, activeFilters);
+        
+        // For backwards compatibility with any components using filter:changed
+        EventManager.publish('filter:changed', activeFilters);
     };
     
     /**
