@@ -19,3 +19,15 @@ This application helps Druid players with:
 - Set up app initialization script with module pattern
 - Created tab navigation functionality with URL hash support
 - Added data import/export UI elements
+
+### Stage 2: Database & Parser (March 29, 2025)
+- Implemented IndexedDB storage for beast and spell data
+- Created database module with CRUD operations and versioning
+- Added beast and spell data stores with appropriate indices
+- Implemented user preferences storage system
+- Created markdown parser for beast data from 5etools format
+- Added spell parser for standardized spell entries
+- Implemented event management system for component communication
+- Created UI utilities for DOM manipulation and notifications
+- Updated app.js to integrate with database and parser modules
+- Added automatic sample data loading on first run

@@ -17,7 +17,7 @@ const DruidAssistant = (function() {
     let elements = {};
     
     // Initialize the application
-    const init = () => {
+    const init = async () => {
         console.log(`Initializing Druid's Assistant v${APP_VERSION}`);
         
         // Check browser compatibility
@@ -26,23 +26,40 @@ const DruidAssistant = (function() {
             return;
         }
         
-        // Cache frequently used DOM elements
-        cacheElements();
-        
-        // Set up event listeners
-        setupEventListeners();
-        
-        // Initialize data management buttons
-        initDataControls();
-        
-        // Mark as initialized
-        state.initialized = true;
-        
-        // Publish initialization event
-        const event = new CustomEvent('appInitialized', { detail: { version: APP_VERSION } });
-        document.dispatchEvent(event);
-        
-        console.log('Initialization complete');
+        try {
+            // Initialize database
+            await Database.init();
+            
+            // Verify database integrity
+            const integrityCheck = await Database.verifyIntegrity();
+            if (!integrityCheck.valid) {
+                showError(`Database integrity check failed: ${integrityCheck.reason}`);
+                console.error('Database integrity check failed:', integrityCheck.reason);
+            }
+            
+            // Cache frequently used DOM elements
+            cacheElements();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Initialize data management buttons
+            initDataControls();
+            
+            // Check if database is empty and load sample data if needed
+            await loadInitialDataIfNeeded();
+            
+            // Mark as initialized
+            state.initialized = true;
+            
+            // Publish initialization event
+            EventManager.publish(EventManager.EVENTS.APP_INITIALIZED, { version: APP_VERSION });
+            
+            console.log('Initialization complete');
+        } catch (error) {
+            console.error('Initialization error:', error);
+            showError('Error initializing application. Please refresh the page or try again later.');
+        }
     };
     
     // Check if the browser supports required features
@@ -89,7 +106,10 @@ const DruidAssistant = (function() {
     // Set up global event listeners
     const setupEventListeners = () => {
         // Listen for tab changes
-        document.addEventListener('tabChanged', handleTabChange);
+        EventManager.subscribe(EventManager.EVENTS.TAB_CHANGED, handleTabChange);
+        document.addEventListener('tabChanged', (event) => {
+            EventManager.publish(EventManager.EVENTS.TAB_CHANGED, event.detail);
+        });
         
         // Import button click
         elements.importButton.addEventListener('click', () => {
@@ -106,13 +126,18 @@ const DruidAssistant = (function() {
         elements.resetButton.addEventListener('click', handleReset);
         
         // Search input
-        elements.beastSearch.addEventListener('input', handleSearch);
+        elements.beastSearch.addEventListener('input', UIUtils.debounce(handleSearch, 300));
         
         // Clear search
         elements.clearSearch.addEventListener('click', clearSearch);
         
         // Reset filters
         elements.resetFilters.addEventListener('click', resetFilters);
+        
+        // Listen for data events
+        EventManager.subscribe(EventManager.EVENTS.DATA_IMPORTED, handleDataImported);
+        EventManager.subscribe(EventManager.EVENTS.DATA_EXPORTED, handleDataExported);
+        EventManager.subscribe(EventManager.EVENTS.DATA_RESET, handleDataReset);
     };
     
     // Initialize data management controls
@@ -145,9 +170,68 @@ const DruidAssistant = (function() {
         });
     };
     
+    // Check if database is empty and load sample data if needed
+    const loadInitialDataIfNeeded = async () => {
+        try {
+            // Check if we have any beasts
+            const beasts = await BeastStore.getAllBeasts();
+            const spells = await SpellStore.getAllSpells();
+            
+            // If no beasts and no spells, try to load sample data
+            if (beasts.length === 0 && spells.length === 0) {
+                const loadingIndicator = UIUtils.showLoading('Loading initial data...');
+                
+                try {
+                    // Load sample beast data
+                    const beastResponse = await fetch('Random 2nd selection of beasts.md');
+                    if (beastResponse.ok) {
+                        const beastContent = await beastResponse.text();
+                        const parsedBeasts = Parser.parseBeastMarkdown(beastContent);
+                        
+                        if (parsedBeasts.length > 0) {
+                            await BeastStore.addBeasts(parsedBeasts);
+                            console.log(`Loaded ${parsedBeasts.length} sample beasts`);
+                        }
+                    }
+                    
+                    // Load sample spell data
+                    const spellResponse = await fetch('spells-5etools-2014-subset-druid.md');
+                    if (spellResponse.ok) {
+                        const spellContent = await spellResponse.text();
+                        const parsedSpells = Parser.parseSpellMarkdown(spellContent);
+                        
+                        if (parsedSpells.length > 0) {
+                            await SpellStore.addSpells(parsedSpells);
+                            console.log(`Loaded ${parsedSpells.length} sample spells`);
+                        }
+                    }
+                    
+                    state.dataLoaded = true;
+                    EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
+                        source: 'initial',
+                        beasts: beasts.length,
+                        spells: spells.length
+                    });
+                    
+                    showNotification('Sample data loaded successfully', 'success');
+                } catch (error) {
+                    console.error('Error loading sample data:', error);
+                    showError('Failed to load sample data. You can import your own data using the Import button.');
+                } finally {
+                    loadingIndicator.hide();
+                }
+            } else {
+                state.dataLoaded = true;
+                console.log(`Database contains ${beasts.length} beasts and ${spells.length} spells`);
+            }
+        } catch (error) {
+            console.error('Error checking initial data:', error);
+        }
+    };
+    
     // Handle tab change events
     const handleTabChange = (event) => {
-        const tabName = event.detail.tabName;
+        const tabName = event.tabName;
         console.log(`Tab changed to: ${tabName}`);
         
         // Perform any necessary tab-specific initialization
@@ -182,7 +266,7 @@ const DruidAssistant = (function() {
         }
         
         // Show loading state
-        showNotification('Importing data...', 'info');
+        const loadingIndicator = UIUtils.showLoading('Importing data...');
         
         // Reset the file input for future imports
         elements.importFile.value = '';
@@ -190,47 +274,141 @@ const DruidAssistant = (function() {
         // Read the file
         const reader = new FileReader();
         
-        reader.onload = (e) => {
-            const content = e.target.result;
-            
-            // At this point, we would pass the content to a parser
-            // Since we haven't implemented the parser yet, we'll just show a success message
-            showNotification('Data imported successfully!', 'success');
-            
-            // In the future, this will trigger data processing
-            console.log('File content loaded, ready for parsing');
+        reader.onload = async (e) => {
+            try {
+                const content = e.target.result;
+                
+                // Parse the markdown file
+                const parseResult = Parser.parseMarkdownFile(content);
+                
+                if (parseResult.type === 'unknown' || parseResult.data.length === 0) {
+                    showError('No valid data found in the imported file');
+                    loadingIndicator.hide();
+                    return;
+                }
+                
+                // Import the data based on type
+                if (parseResult.type === 'beasts') {
+                    await BeastStore.addBeasts(parseResult.data);
+                    showNotification(`Imported ${parseResult.data.length} beasts successfully`, 'success');
+                } else if (parseResult.type === 'spells') {
+                    await SpellStore.addSpells(parseResult.data);
+                    showNotification(`Imported ${parseResult.data.length} spells successfully`, 'success');
+                }
+                
+                // Mark data as loaded
+                state.dataLoaded = true;
+                
+                // Publish data imported event
+                EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
+                    source: 'import',
+                    type: parseResult.type,
+                    count: parseResult.data.length
+                });
+            } catch (error) {
+                console.error('Error importing data:', error);
+                showError(`Error importing data: ${error.message}`);
+            } finally {
+                loadingIndicator.hide();
+            }
         };
         
         reader.onerror = () => {
             showError('Error reading file');
+            loadingIndicator.hide();
         };
         
         reader.readAsText(file);
     };
     
     // Handle data export
-    const handleExport = () => {
-        // This will be implemented in a future stage
-        showNotification('Export functionality will be available soon', 'info');
+    const handleExport = async () => {
+        try {
+            const loadingIndicator = UIUtils.showLoading('Exporting data...');
+            
+            // Get database data
+            const exportData = await Database.exportDatabase();
+            
+            // Convert to JSON string
+            const jsonString = JSON.stringify(exportData, null, 2);
+            
+            // Create a blob and download link
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `druid-assistant-export-${new Date().toISOString().slice(0, 10)}.json`;
+            
+            // Append to document, click, and remove
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Release the URL
+            URL.revokeObjectURL(url);
+            
+            loadingIndicator.hide();
+            showNotification('Data exported successfully', 'success');
+            
+            // Publish data exported event
+            EventManager.publish(EventManager.EVENTS.DATA_EXPORTED, {
+                timestamp: new Date().toISOString(),
+                beasts: exportData.beasts.length,
+                spells: exportData.spells.length
+            });
+        } catch (error) {
+            console.error('Error exporting data:', error);
+            showError(`Error exporting data: ${error.message}`);
+        }
     };
     
     // Handle data reset
-    const handleReset = () => {
+    const handleReset = async () => {
         if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
-            // This will be implemented in a future stage
-            showNotification('Data reset functionality will be available soon', 'info');
+            try {
+                const loadingIndicator = UIUtils.showLoading('Resetting data...');
+                
+                // Clear all stores
+                await BeastStore.clearBeasts();
+                await SpellStore.clearSpells();
+                await UserStore.clearSettings();
+                
+                loadingIndicator.hide();
+                showNotification('All data has been reset', 'success');
+                
+                // Reload sample data
+                await loadInitialDataIfNeeded();
+                
+                // Publish data reset event
+                EventManager.publish(EventManager.EVENTS.DATA_RESET, {
+                    timestamp: new Date().toISOString()
+                });
+            } catch (error) {
+                console.error('Error resetting data:', error);
+                showError(`Error resetting data: ${error.message}`);
+            }
         }
     };
     
     // Handle search input
-    const handleSearch = (event) => {
+    const handleSearch = async (event) => {
         const searchTerm = event.target.value.trim().toLowerCase();
         
         // Show/hide clear button based on search term
         elements.clearSearch.style.display = searchTerm ? 'block' : 'none';
         
-        // This will be implemented in a future stage
-        console.log(`Searching for: ${searchTerm}`);
+        // Record search in history if not empty
+        if (searchTerm) {
+            await UserStore.addSearchToHistory('statblock', searchTerm);
+        }
+        
+        // Publish search event
+        EventManager.publish(EventManager.EVENTS.SEARCH_PERFORMED, {
+            tab: 'statblock',
+            term: searchTerm
+        });
     };
     
     // Clear search
@@ -238,12 +416,17 @@ const DruidAssistant = (function() {
         elements.beastSearch.value = '';
         elements.clearSearch.style.display = 'none';
         
+        // Publish search cleared event
+        EventManager.publish(EventManager.EVENTS.SEARCH_CLEARED, {
+            tab: 'statblock'
+        });
+        
         // This will trigger the search event with an empty term
         elements.beastSearch.dispatchEvent(new Event('input'));
     };
     
     // Reset filters
-    const resetFilters = () => {
+    const resetFilters = async () => {
         // Reset CR filters
         document.getElementById('cr-min').value = '0';
         document.getElementById('cr-max').value = '6';
@@ -254,37 +437,41 @@ const DruidAssistant = (function() {
             checkbox.checked = true;
         });
         
-        // Trigger filter change event (to be implemented)
-        // This will be implemented in a future stage
-        console.log('Filters reset');
+        // Clear saved filters
+        await UserStore.resetFilters('statblock');
+        
+        // Publish filter reset event
+        EventManager.publish(EventManager.EVENTS.FILTER_RESET, {
+            tab: 'statblock'
+        });
+    };
+    
+    // Handle data imported event
+    const handleDataImported = (data) => {
+        console.log('Data imported:', data);
+        // Update UI or perform other actions based on imported data
+    };
+    
+    // Handle data exported event
+    const handleDataExported = (data) => {
+        console.log('Data exported:', data);
+        // Update UI or perform other actions based on exported data
+    };
+    
+    // Handle data reset event
+    const handleDataReset = (data) => {
+        console.log('Data reset:', data);
+        // Update UI or perform other actions based on data reset
     };
     
     // Show notification message
     const showNotification = (message, type = 'info') => {
-        // Create notification element if it doesn't exist
-        let notification = document.querySelector('.notification');
-        if (!notification) {
-            notification = document.createElement('div');
-            notification.className = 'notification';
-            document.body.appendChild(notification);
-        }
-        
-        // Set message and type
-        notification.textContent = message;
-        notification.className = `notification ${type}`;
-        
-        // Show the notification
-        notification.classList.add('visible');
-        
-        // Hide after timeout
-        setTimeout(() => {
-            notification.classList.remove('visible');
-        }, 3000);
+        return UIUtils.showNotification(message, type);
     };
     
     // Show error message
     const showError = (message) => {
-        showNotification(message, 'error');
+        return UIUtils.showNotification(message, 'error');
     };
     
     // Public API
@@ -292,7 +479,8 @@ const DruidAssistant = (function() {
         init,
         version: APP_VERSION,
         showNotification,
-        showError
+        showError,
+        state
     };
 })();
 
