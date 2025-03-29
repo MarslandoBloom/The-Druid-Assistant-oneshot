@@ -1,0 +1,256 @@
+/* Statblock CSS for Druid's Assistant
+   Based on D&D 5e 2014 rulebook format */
+
+/* Base statblock container */
+.statblock {
+    background-color: #fdf1dc;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    margin-bottom: 1rem;
+    font-family: 'Noto Serif', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+    position: relative;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #472d20;
+}
+
+/* Statblock header */
+.statblock-header {
+    margin-bottom: 0.5rem;
+}
+
+.statblock-title {
+    font-size: 22px;
+    font-weight: bold;
+    font-family: 'Calibri', 'Gill Sans', 'Gill Sans MT', sans-serif;
+    margin: 0;
+    color: #822000;
+}
+
+.statblock-subtitle {
+    font-size: 14px;
+    font-style: italic;
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* Dividers */
+.statblock-divider {
+    height: 6px;
+    background: #e69a28;
+    border: 1px solid #000;
+    border-radius: 1px;
+    margin: 0.5rem 0;
+    position: relative;
+}
+
+.statblock-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 2px;
+    height: 2px;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+/* Attributes section */
+.statblock-attributes {
+    margin-bottom: 0.5rem;
+}
+
+.statblock-attributes p {
+    margin: 0.2rem 0;
+}
+
+.statblock-attributes-label {
+    font-weight: bold;
+}
+
+/* Ability scores table */
+.statblock-abilities {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.7rem 0;
+    text-align: center;
+}
+
+.statblock-ability {
+    flex: 1;
+    margin: 0 0.1rem;
+}
+
+.statblock-ability-label {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 0.2rem;
+}
+
+.statblock-ability-score {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.statblock-ability-modifier {
+    font-size: 13px;
+}
+
+/* Details section (skills, senses, etc.) */
+.statblock-details {
+    margin-bottom: 0.5rem;
+}
+
+.statblock-details p {
+    margin: 0.2rem 0;
+}
+
+/* Traits, Actions, Reactions sections */
+.statblock-traits, 
+.statblock-actions, 
+.statblock-reactions {
+    margin-top: 0.7rem;
+}
+
+.statblock-section-title {
+    font-size: 18px;
+    font-weight: bold;
+    font-family: 'Calibri', 'Gill Sans', 'Gill Sans MT', sans-serif;
+    border-bottom: 1px solid #472d20;
+    margin: 0.5rem 0;
+    color: #822000;
+}
+
+.trait-name, 
+.action-name, 
+.reaction-name {
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* Print styles */
+@media print {
+    .statblock {
+        box-shadow: none;
+        border: 1px solid #000;
+        page-break-inside: avoid;
+    }
+}
+
+/* Responsive styles */
+@media (max-width: 576px) {
+    .statblock {
+        padding: 0.3rem;
+        font-size: 13px;
+    }
+    
+    .statblock-title {
+        font-size: 20px;
+    }
+    
+    .statblock-abilities {
+        flex-wrap: wrap;
+    }
+    
+    .statblock-ability {
+        flex: 0 0 30%;
+        margin-bottom: 0.3rem;
+    }
+}
+
+/* Selected statblock in list */
+.beast-item.selected {
+    background-color: var(--primary-light);
+    color: white;
+    border-color: var(--primary-dark);
+}
+
+/* Beast list */
+.beast-item {
+    padding: 0.5rem;
+    margin: 0.2rem 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.beast-item:hover {
+    background-color: var(--bg-light);
+}
+
+.beast-name {
+    font-weight: bold;
+}
+
+.beast-cr {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    background-color: rgba(0, 100, 0, 0.1);
+    padding: 2px 5px;
+    border-radius: 10px;
+}
+
+/* Virtual list for better performance */
+.virtual-list {
+    position: relative;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.virtual-list-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+/* Favorited beasts */
+.beast-item.favorite .beast-name::after {
+    content: "★";
+    color: gold;
+    margin-left: 0.3rem;
+}
+
+.favorite-button {
+    color: #ccc;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.favorite-button.active {
+    color: gold;
+}
+
+/* Loading state */
+.loading-indicator {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-light);
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-light);
+}
+
+/* Comparison view */
+.comparison-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .comparison-container {
+        grid-template-columns: 1fr;
+    }
+}
