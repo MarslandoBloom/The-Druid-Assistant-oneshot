@@ -273,11 +273,20 @@ const EventManager = (function() {
     };
     
     // Define common event types
+    /**
+     * Event types supported by the system
+     * Use these constants for subscribing to and publishing events
+     */
     const EVENT_TYPES = {
         // Data events
         DATA_IMPORTED: 'data:imported',
         DATA_EXPORTED: 'data:exported',
         DATA_RESET: 'data:reset',
+        DATA_LOAD_START: 'data:load:start',
+        DATA_LOAD_COMPLETE: 'data:load:complete',
+        DATA_LOAD_ERROR: 'data:load:error',
+        DATA_SAMPLE_LOADED: 'data:sample:loaded',
+        DATA_STATS_UPDATED: 'data:stats:updated',
         
         // Beast events
         BEAST_SELECTED: 'beast:selected',

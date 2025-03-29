@@ -332,15 +332,80 @@ const UIUtils = (function() {
      * @param {string} message - Message to display
      * @param {string} type - Notification type (info, success, warning, error)
      * @param {number} duration - How long to display the notification (ms)
+     * @param {Object} options - Additional options
      * @returns {HTMLElement} The notification element
      */
-    const showNotification = (message, type = 'info', duration = 3000) => {
-        // Create notification element if it doesn't exist
-        let notification = document.querySelector('.notification');
-        if (!notification) {
-            notification = createElement('div', { className: 'notification' });
-            document.body.appendChild(notification);
+    const showNotification = (message, type = 'info', duration = 3000, options = {}) => {
+        // Options with defaults
+        const settings = {
+            id: `notification-${Date.now()}`,
+            dismissible: true,
+            position: 'top-right',  // top-right, top-left, bottom-right, bottom-left, top-center, bottom-center
+            icon: true,
+            autoClose: duration > 0,
+            ...options
+        };
+        
+        // Create notification container if it doesn't exist
+        let container = document.querySelector('.notification-container');
+        if (!container) {
+            container = createElement('div', { className: `notification-container ${settings.position}` });
+            document.body.appendChild(container);
         }
+        
+        // Create notification element
+        const notification = createElement('div', { 
+            className: `notification ${type}`,
+            id: settings.id
+        });
+        
+        // Create notification content
+        const contentWrapper = createElement('div', { className: 'notification-content' });
+        
+        // Add icon if enabled
+        if (settings.icon) {
+            const iconElement = createElement('div', { className: 'notification-icon' });
+            let iconContent = '';
+            
+            // Different icon based on type
+            switch (type) {
+                case 'success':
+                    iconContent = '✓';
+                    break;
+                case 'error':
+                    iconContent = '✕';
+                    break;
+                case 'warning':
+                    iconContent = '!';
+                    break;
+                default:
+                    iconContent = 'i';
+            }
+            
+            iconElement.textContent = iconContent;
+            contentWrapper.appendChild(iconElement);
+        }
+        
+        // Add message
+        const messageElement = createElement('div', { className: 'notification-message' }, message);
+        contentWrapper.appendChild(messageElement);
+        
+        notification.appendChild(contentWrapper);
+        
+        // Add close button if dismissible
+        if (settings.dismissible) {
+            const closeButton = createElement('button', {
+                className: 'notification-close',
+                type: 'button',
+                innerHTML: '&times;',
+                ariaLabel: 'Close',
+                onclick: () => notification.classList.remove('visible')
+            });
+            notification.appendChild(closeButton);
+        }
+        
+        // Add to container
+        container.appendChild(notification);
         
         // Set message and type
         notification.textContent = message;
@@ -354,11 +419,21 @@ const UIUtils = (function() {
             notification.classList.remove('visible');
         }, duration);
         
-        // Allow clicking to dismiss
-        notification.addEventListener('click', () => {
-            clearTimeout(timeoutId);
-            notification.classList.remove('visible');
-        });
+        // Allow clicking to dismiss if enabled
+        if (settings.dismissible) {
+            notification.addEventListener('click', (event) => {
+                // Only dismiss if clicking the notification itself, not its children
+                if (event.target === notification) {
+                    clearTimeout(timeoutId);
+                    notification.classList.remove('visible');
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        removeElement(notification);
+                    }, 300);
+                }
+            });
+        }
         
         return notification;
     };
@@ -721,6 +796,106 @@ const UIUtils = (function() {
         return result;
     };
     
+    /**
+     * Setup drag and drop for file uploads
+     * @param {HTMLElement} dropZone - Element to setup as drop zone
+     * @param {Function} onDrop - Callback for when files are dropped
+     * @param {Object} options - Setup options
+     * @returns {Object} Drag and drop control object
+     */
+    const setupFileDragAndDrop = (dropZone, onDrop, options = {}) => {
+        if (!dropZone || typeof onDrop !== 'function') {
+            throw new Error('Drop zone element and drop callback are required');
+        }
+        
+        const settings = {
+            dragOverClass: 'drag-over',
+            fileTypes: [],           // Empty array = accept all file types
+            maxFiles: 0,             // 0 = unlimited
+            maxSize: 0,              // 0 = unlimited, otherwise in bytes
+            showPreview: false,      // Show file preview
+            ...options
+        };
+        
+        // Handle dragover event
+        const handleDragOver = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add(settings.dragOverClass);
+            
+            // Set dropEffect to copy
+            if (e.dataTransfer) {
+                e.dataTransfer.dropEffect = 'copy';
+            }
+        };
+        
+        // Handle dragleave event
+        const handleDragLeave = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove(settings.dragOverClass);
+        };
+        
+        // Handle drop event
+        const handleDrop = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove(settings.dragOverClass);
+            
+            // Get the files
+            const files = e.dataTransfer?.files || [];
+            
+            // Validate files
+            const validFiles = Array.from(files).filter(file => {
+                // Check file type if specified
+                if (settings.fileTypes.length > 0) {
+                    const fileType = file.type || '';
+                    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+                    
+                    // Check if file type or extension matches any allowed type
+                    const isValidType = settings.fileTypes.some(type => {
+                        return fileType.includes(type) || type === fileExt || 
+                               type === '.' + fileExt || type === '*';
+                    });
+                    
+                    if (!isValidType) return false;
+                }
+                
+                // Check file size if specified
+                if (settings.maxSize > 0 && file.size > settings.maxSize) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // Check max files if specified
+            const finalFiles = settings.maxFiles > 0 ? 
+                validFiles.slice(0, settings.maxFiles) : validFiles;
+            
+            // Call the callback with the files
+            if (finalFiles.length > 0) {
+                onDrop(finalFiles, e);
+            }
+        };
+        
+        // Attach event listeners
+        dropZone.addEventListener('dragover', handleDragOver);
+        dropZone.addEventListener('dragleave', handleDragLeave);
+        dropZone.addEventListener('drop', handleDrop);
+        
+        // Return control object
+        return {
+            element: dropZone,
+            settings,
+            destroy: () => {
+                dropZone.removeEventListener('dragover', handleDragOver);
+                dropZone.removeEventListener('dragleave', handleDragLeave);
+                dropZone.removeEventListener('drop', handleDrop);
+            }
+        };
+    };
+    
     // Public API
     return {
         // DOM manipulation
@@ -756,6 +931,7 @@ const UIUtils = (function() {
         debounce,
         throttle,
         formatCR,
-        formatSpellComponents
+        formatSpellComponents,
+        setupFileDragAndDrop
     };
 })();

@@ -355,18 +355,111 @@ footer {
 }
 
 /* Notification system */
-.notification {
+.notification-container {
     position: fixed;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    max-width: 300px;
+    width: 100%;
+}
+
+.notification-container.top-right {
     top: 20px;
     right: 20px;
+}
+
+.notification-container.top-left {
+    top: 20px;
+    left: 20px;
+}
+
+.notification-container.bottom-right {
+    bottom: 20px;
+    right: 20px;
+}
+
+.notification-container.bottom-left {
+    bottom: 20px;
+    left: 20px;
+}
+
+.notification-container.top-center {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.notification-container.bottom-center {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.notification {
     padding: var(--spacing-md);
     border-radius: var(--border-radius);
     background-color: var(--bg-light);
     box-shadow: var(--shadow-lg);
-    z-index: 1000;
     transform: translateX(120%);
     transition: transform var(--transition-normal);
-    max-width: 300px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    cursor: pointer;
+}
+
+.notification-content {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    flex: 1;
+}
+
+.notification-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.notification.info .notification-icon {
+    background-color: #2196F3;
+    color: white;
+}
+
+.notification.success .notification-icon {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.notification.warning .notification-icon {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.notification.error .notification-icon {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.notification-message {
+    flex: 1;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-light);
+    margin-left: var(--spacing-sm);
 }
 
 .notification.visible {

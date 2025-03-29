@@ -173,47 +173,32 @@ const DruidAssistant = (function() {
     // Check if database is empty and load sample data if needed
     const loadInitialDataIfNeeded = async () => {
         try {
-            // Check if we have any beasts
-            const beasts = await BeastStore.getAllBeasts();
-            const spells = await SpellStore.getAllSpells();
+            // Check if database is empty
+            const dbState = await DataManager.checkDatabaseEmpty();
             
-            // If no beasts and no spells, try to load sample data
-            if (beasts.length === 0 && spells.length === 0) {
+            // If database is empty, load sample data
+            if (dbState.isEmpty) {
                 const loadingIndicator = UIUtils.showLoading('Loading initial data...');
                 
                 try {
-                    // Load sample beast data
-                    const beastResponse = await fetch('Random 2nd selection of beasts.md');
-                    if (beastResponse.ok) {
-                        const beastContent = await beastResponse.text();
-                        const parsedBeasts = Parser.parseBeastMarkdown(beastContent);
-                        
-                        if (parsedBeasts.length > 0) {
-                            await BeastStore.addBeasts(parsedBeasts);
-                            console.log(`Loaded ${parsedBeasts.length} sample beasts`);
-                        }
-                    }
-                    
-                    // Load sample spell data
-                    const spellResponse = await fetch('spells-5etools-2014-subset-druid.md');
-                    if (spellResponse.ok) {
-                        const spellContent = await spellResponse.text();
-                        const parsedSpells = Parser.parseSpellMarkdown(spellContent);
-                        
-                        if (parsedSpells.length > 0) {
-                            await SpellStore.addSpells(parsedSpells);
-                            console.log(`Loaded ${parsedSpells.length} sample spells`);
-                        }
-                    }
-                    
-                    state.dataLoaded = true;
-                    EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
-                        source: 'initial',
-                        beasts: beasts.length,
-                        spells: spells.length
+                    // Load sample data using DataManager
+                    const result = await DataManager.loadSampleData({
+                        showNotification: false  // We'll handle notifications ourselves
                     });
                     
-                    showNotification('Sample data loaded successfully', 'success');
+                    state.dataLoaded = true;
+                    
+                    EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
+                        source: 'initial',
+                        beasts: result.beastsLoaded,
+                        spells: result.spellsLoaded
+                    });
+                    
+                    if (result.beastsLoaded > 0 || result.spellsLoaded > 0) {
+                        showNotification('Sample data loaded successfully', 'success');
+                    } else {
+                        showError('No sample data available. You can import your own data using the Import button.');
+                    }
                 } catch (error) {
                     console.error('Error loading sample data:', error);
                     showError('Failed to load sample data. You can import your own data using the Import button.');
@@ -222,7 +207,7 @@ const DruidAssistant = (function() {
                 }
             } else {
                 state.dataLoaded = true;
-                console.log(`Database contains ${beasts.length} beasts and ${spells.length} spells`);
+                console.log(`Database contains ${dbState.beastCount} beasts and ${dbState.spellCount} spells`);
             }
         } catch (error) {
             console.error('Error checking initial data:', error);
@@ -255,13 +240,16 @@ const DruidAssistant = (function() {
     };
     
     // Handle file import
-    const handleFileImport = (event) => {
+    const handleFileImport = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
         
-        // Check if it's a markdown file
-        if (file.type !== 'text/markdown' && !file.name.endsWith('.md')) {
-            showError('Please select a markdown (.md) file');
+        // Check if it's a markdown or JSON file
+        const isMarkdown = file.type === 'text/markdown' || file.name.endsWith('.md');
+        const isJSON = file.type === 'application/json' || file.name.endsWith('.json');
+        
+        if (!isMarkdown && !isJSON) {
+            showError('Please select a markdown (.md) or JSON (.json) file');
             return;
         }
         
@@ -271,54 +259,50 @@ const DruidAssistant = (function() {
         // Reset the file input for future imports
         elements.importFile.value = '';
         
-        // Read the file
-        const reader = new FileReader();
-        
-        reader.onload = async (e) => {
-            try {
-                const content = e.target.result;
-                
-                // Parse the markdown file
-                const parseResult = Parser.parseMarkdownFile(content);
-                
-                if (parseResult.type === 'unknown' || parseResult.data.length === 0) {
-                    showError('No valid data found in the imported file');
-                    loadingIndicator.hide();
-                    return;
-                }
-                
-                // Import the data based on type
-                if (parseResult.type === 'beasts') {
-                    await BeastStore.addBeasts(parseResult.data);
-                    showNotification(`Imported ${parseResult.data.length} beasts successfully`, 'success');
-                } else if (parseResult.type === 'spells') {
-                    await SpellStore.addSpells(parseResult.data);
-                    showNotification(`Imported ${parseResult.data.length} spells successfully`, 'success');
-                }
-                
-                // Mark data as loaded
-                state.dataLoaded = true;
-                
-                // Publish data imported event
-                EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
-                    source: 'import',
-                    type: parseResult.type,
-                    count: parseResult.data.length
+        try {
+            let result;
+            
+            // Use DataManager to import the file
+            if (isMarkdown) {
+                result = await DataManager.importFromFile(file, {
+                    showNotification: false  // We'll handle notifications
                 });
-            } catch (error) {
-                console.error('Error importing data:', error);
-                showError(`Error importing data: ${error.message}`);
-            } finally {
-                loadingIndicator.hide();
+            } else if (isJSON) {
+                result = await DataManager.importFromJSON(file, {
+                    showNotification: false  // We'll handle notifications
+                });
             }
-        };
-        
-        reader.onerror = () => {
-            showError('Error reading file');
+            
+            // Mark data as loaded
+            state.dataLoaded = true;
+            
+            // Show notification based on result
+            if (result.success) {
+                let message = 'Import successful:';
+                const parts = [];
+                
+                if (result.beastsImported > 0) {
+                    parts.push(`${result.beastsImported} beasts`);
+                }
+                if (result.spellsImported > 0) {
+                    parts.push(`${result.spellsImported} spells`);
+                }
+                if (result.prefsImported > 0) {
+                    parts.push(`${result.prefsImported} preferences`);
+                }
+                
+                message += ' ' + parts.join(', ');
+                showNotification(message, 'success');
+            } else {
+                showError(`Import failed: ${result.error || 'Unknown error'}`);
+            }
+            
+        } catch (error) {
+            console.error('Error importing data:', error);
+            showError(`Error importing data: ${error.message}`);
+        } finally {
             loadingIndicator.hide();
-        };
-        
-        reader.readAsText(file);
+        }
     };
     
     // Handle data export
@@ -326,38 +310,20 @@ const DruidAssistant = (function() {
         try {
             const loadingIndicator = UIUtils.showLoading('Exporting data...');
             
-            // Get database data
-            const exportData = await Database.exportDatabase();
-            
-            // Convert to JSON string
-            const jsonString = JSON.stringify(exportData, null, 2);
-            
-            // Create a blob and download link
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            // Create download link
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `druid-assistant-export-${new Date().toISOString().slice(0, 10)}.json`;
-            
-            // Append to document, click, and remove
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Release the URL
-            URL.revokeObjectURL(url);
-            
-            loadingIndicator.hide();
-            showNotification('Data exported successfully', 'success');
-            
-            // Publish data exported event
-            EventManager.publish(EventManager.EVENTS.DATA_EXPORTED, {
-                timestamp: new Date().toISOString(),
-                beasts: exportData.beasts.length,
-                spells: exportData.spells.length
-            });
+            try {
+                // Use DataManager to export data
+                const result = await DataManager.exportAllData({
+                    showNotification: false  // We'll handle notifications
+                });
+                
+                if (result.success) {
+                    showNotification('Data exported successfully', 'success');
+                } else {
+                    showError(`Export failed: ${result.error || 'Unknown error'}`);
+                }
+            } finally {
+                loadingIndicator.hide();
+            }
         } catch (error) {
             console.error('Error exporting data:', error);
             showError(`Error exporting data: ${error.message}`);
@@ -366,29 +332,27 @@ const DruidAssistant = (function() {
     
     // Handle data reset
     const handleReset = async () => {
-        if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
-            try {
-                const loadingIndicator = UIUtils.showLoading('Resetting data...');
-                
-                // Clear all stores
-                await BeastStore.clearBeasts();
-                await SpellStore.clearSpells();
-                await UserStore.clearSettings();
-                
-                loadingIndicator.hide();
-                showNotification('All data has been reset', 'success');
-                
-                // Reload sample data
-                await loadInitialDataIfNeeded();
-                
-                // Publish data reset event
-                EventManager.publish(EventManager.EVENTS.DATA_RESET, {
-                    timestamp: new Date().toISOString()
-                });
-            } catch (error) {
-                console.error('Error resetting data:', error);
-                showError(`Error resetting data: ${error.message}`);
+        try {
+            // Use DataManager to reset data
+            const result = await DataManager.resetAllData({
+                showConfirmation: true,       // Show confirmation dialog
+                showNotification: false,       // We'll handle notifications
+                loadSampleData: true           // Load sample data after reset
+            });
+            
+            // If reset was cancelled, do nothing
+            if (result.cancelled) {
+                return;
             }
+            
+            if (result.success) {
+                showNotification('All data has been reset', 'success');
+            } else {
+                showError(`Reset failed: ${result.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error resetting data:', error);
+            showError(`Error resetting data: ${error.message}`);
         }
     };
     
