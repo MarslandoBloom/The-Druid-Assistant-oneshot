@@ -239,7 +239,25 @@ const UserStore = (function() {
      * @returns {Promise<string[]>} Promise resolving to array of favorite IDs
      */
     const getFavorites = async () => {
-        return getSetting(KEYS.FAVORITES, []);
+        try {
+            // Direct database check first
+            const existing = await Database.getById(STORE_NAME, KEYS.FAVORITES);
+            
+            if (existing) {
+                return existing.value || [];
+            }
+            
+            // If not found, create the setting
+            await Database.update(STORE_NAME, {
+                key: KEYS.FAVORITES,
+                value: []
+            });
+            
+            return [];
+        } catch (error) {
+            console.warn('Error getting favorites, returning empty array:', error);
+            return [];
+        }
     };
     
     /**

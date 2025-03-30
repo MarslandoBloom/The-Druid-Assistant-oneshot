@@ -83,3 +83,22 @@ This application helps Druid players with:
 - Fixed issue with the number of beasts being imported showing incorrectly
 - Improved validation of parsed beast data to ensure required fields are present
 - Removed dependency on hardcoded sample data which is no longer needed
+
+### Stage 5.3: Beast List Display Fix (March 30, 2025)
+- Fixed critical bug where beast list wasn't updating after data import
+- Added proper subscription to DATA_IMPORTED event in StatblockModule
+- Enhanced renderBeastList() function to be more robust with error handling
+- Improved applyFilters() to handle cases when FiltersComponent isn't fully initialized
+- Added parseCR utility function to handle challenge rating string conversion
+- Added extensive debug logging to help diagnose data flow issues
+- Created fallback filter implementation for greater stability
+
+### Stage 5.4: Infinite Loop and Database Error Fixes (March 30, 2025)
+- Fixed critical infinite event loop between loadBeasts() and DATA_LOAD_COMPLETE events
+- Added debouncing to prevent multiple simultaneous beast list loads
+- Fixed database constraint errors in UserStore when accessing favorites
+- Implemented more robust error handling throughout the application
+- Enhanced getFavorites() to handle race condition when setting up initial favorites
+- Fixed renderBeastList() to handle errors in component initialization
+- Made createBeastItem() more resilient to database errors
+- Updated updateFavoritesList() with proper error boundaries

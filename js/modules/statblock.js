@@ -28,6 +28,7 @@ const StatblockModule = (function() {
      * Initialize the statblock module
      */
     const init = function() {
+        console.log('Initializing statblock module...');
         // Cache DOM elements
         beastListElement = document.getElementById('beast-list');
         favoritesListElement = document.getElementById('favorites-list');
@@ -38,14 +39,22 @@ const StatblockModule = (function() {
         // Set up virtual list
         setupVirtualList();
         
-        // Subscribe to events
-        EventManager.subscribe(EventManager.EVENTS.DATA_LOAD_COMPLETE, loadBeasts);
+        // Subscribe to events - IMPORTANT: We don't subscribe to DATA_LOAD_COMPLETE to avoid infinite loops
         EventManager.subscribe('database:ready', loadBeasts);
         EventManager.subscribe('search:performed', handleSearch);
         EventManager.subscribe('filter:changed', handleFilterChange);
         EventManager.subscribe('favorite:added', updateFavoritesList);
         EventManager.subscribe('favorite:removed', updateFavoritesList);
         EventManager.subscribe('tab:changed', handleTabChange);
+        
+        // The critical subscription for beast import
+        EventManager.subscribe(EventManager.EVENTS.DATA_IMPORTED, function(data) {
+            console.log('StatblockModule received DATA_IMPORTED event:', data);
+            if (data.type === 'beasts') {
+                console.log('Loading beasts after import...');
+                loadBeasts();
+            }
+        });
         
         // If database is already connected, load beasts
         if (Database.isConnected()) {
@@ -63,6 +72,8 @@ const StatblockModule = (function() {
         
         // Load recently viewed beasts
         loadRecentlyViewedBeasts();
+        
+        console.log('Statblock module initialized');
     };
     
     /**
@@ -258,14 +269,30 @@ const StatblockModule = (function() {
         }
     };
     
+    // Flag to prevent multiple simultaneous loads
+    let isLoadingBeasts = false;
+    
     /**
      * Load beasts from database
      */
     const loadBeasts = function() {
+        // Prevent multiple simultaneous loads
+        if (isLoadingBeasts) {
+            console.log('Already loading beasts, skipping duplicate call...');
+            return;
+        }
+        
+        isLoadingBeasts = true;
+        console.log('Loading beasts from database...');
         showLoading();
         
         BeastStore.getAllBeasts().then(beasts => {
+            console.log(`Loaded ${beasts ? beasts.length : 0} beasts from database`);
             beastList = beasts || [];
+            
+            if (beastList.length > 0) {
+                console.log('Sample beast data:', beastList[0]);
+            }
             
             // Sort by CR (highest to lowest) by default
             beastList.sort((a, b) => {
@@ -275,24 +302,49 @@ const StatblockModule = (function() {
             });
             
             // Apply initial filters
-            applyFilters(FiltersComponent.getFilters());
+            console.log('Applying filters...');
+            try {
+                // Check if FiltersComponent exists
+                const filters = typeof FiltersComponent !== 'undefined' ? 
+                    FiltersComponent.getFilters() : null;
+                applyFilters(filters);
+                console.log(`After filtering: ${filteredList.length} beasts`);
+            } catch (filterError) {
+                console.error('Error applying filters:', filterError);
+                filteredList = [...beastList]; // Use all beasts if filters fail
+            }
             
             // Update favorites list
-            updateFavoritesList();
+            try {
+                updateFavoritesList();
+            } catch (error) {
+                console.error('Error updating favorites list:', error);
+            }
             
             // Update recently viewed list if we have items
             if (recentlyViewedBeasts.length > 0) {
-                updateRecentlyViewedList();
+                try {
+                    updateRecentlyViewedList();
+                } catch (error) {
+                    console.error('Error updating recently viewed list:', error);
+                }
             }
+            
+            // Render the beast list
+            console.log('Rendering beast list...');
+            renderBeastList();
             
             hideLoading();
             
-            // Notify that beasts are loaded
-            EventManager.publish(EventManager.EVENTS.DATA_LOAD_COMPLETE, { count: beastList.length });
+            // We no longer publish DATA_LOAD_COMPLETE to avoid infinite loops
+            
+            // Reset loading flag
+            isLoadingBeasts = false;
         }).catch(error => {
             console.error('Error loading beasts:', error);
             showEmptyState('Error loading beasts. Please try reloading the page.');
             hideLoading();
+            isLoadingBeasts = false;
         });
     };
     
@@ -370,12 +422,46 @@ const StatblockModule = (function() {
      * @param {Object} filters - The filters to apply
      */
     const applyFilters = function(filters) {
+        console.log('Applying filters to beast list...');
         if (!filters) {
+            console.log('No filters provided, using all beasts');
             filteredList = [...beastList];
             return;
         }
         
-        filteredList = beastList.filter(beast => FiltersComponent.filterBeast(beast));
+        try {
+            // Check if FiltersComponent is available
+            if (typeof FiltersComponent !== 'undefined' && FiltersComponent.filterBeast) {
+                console.log('Using FiltersComponent.filterBeast');
+                filteredList = beastList.filter(beast => FiltersComponent.filterBeast(beast));
+            } else {
+                // Fallback to basic filtering if FiltersComponent is not available
+                console.log('FiltersComponent not available, using basic filtering');
+                filteredList = beastList.filter(beast => {
+                    // Basic CR filtering
+                    if (filters.cr) {
+                        const beastCR = parseCR(beast.cr);
+                        if (beastCR < filters.cr.min || beastCR > filters.cr.max) {
+                            return false;
+                        }
+                    }
+                    
+                    // Basic size filtering
+                    if (filters.size && filters.size.length > 0) {
+                        if (!filters.size.includes(beast.size)) {
+                            return false;
+                        }
+                    }
+                    
+                    return true;
+                });
+            }
+        } catch (error) {
+            console.error('Error during filtering:', error);
+            filteredList = [...beastList]; // Use all beasts if filtering fails
+        }
+        
+        console.log(`After filtering: ${filteredList.length} beasts remaining`);
     };
     
     /**
@@ -521,13 +607,6 @@ const StatblockModule = (function() {
         beastItem.className = 'beast-item';
         beastItem.dataset.id = beast.id;
         
-        // Check if this beast is a favorite
-        UserStore.isFavorite(beast.id).then(isFavorite => {
-            if (isFavorite) {
-                beastItem.classList.add('favorite');
-            }
-        });
-        
         // Create left content (name and type/size)
         const leftContent = document.createElement('div');
         leftContent.className = 'beast-item-left';
@@ -561,13 +640,24 @@ const StatblockModule = (function() {
         favoriteBtn.title = 'Add to favorites';
         favoriteBtn.setAttribute('aria-label', 'Toggle favorite');
         
-        // Check favorite status and update button
-        UserStore.isFavorite(beast.id).then(isFavorite => {
-            if (isFavorite) {
-                favoriteBtn.classList.add('active');
-                favoriteBtn.title = 'Remove from favorites';
-            }
-        });
+        // Check favorite status and update button - but don't break if it fails
+        try {
+            UserStore.isFavorite(beast.id).then(isFavorite => {
+                try {
+                    if (isFavorite) {
+                        beastItem.classList.add('favorite');
+                        favoriteBtn.classList.add('active');
+                        favoriteBtn.title = 'Remove from favorites';
+                    }
+                } catch (error) {
+                    console.warn('Error updating favorite UI:', error);
+                }
+            }).catch(error => {
+                console.warn('Error checking favorite status:', error);
+            });
+        } catch (error) {
+            console.warn('Error in favorite check:', error);
+        }
         
         // Add favorite button event
         favoriteBtn.addEventListener('click', function(event) {
@@ -682,6 +772,23 @@ const StatblockModule = (function() {
                 document.addEventListener('contextmenu', removeContextMenu);
             }, 0);
         });
+    };
+    
+    /**
+     * Parse CR string to numeric value
+     * @param {string} cr - CR string (e.g., '1/4', '1/2', '2')
+     * @returns {number} Numeric CR value
+     */
+    const parseCR = function(cr) {
+        if (typeof cr === 'number') return cr;
+        
+        // Handle fractions
+        if (cr === '1/8') return 0.125;
+        if (cr === '1/4') return 0.25;
+        if (cr === '1/2') return 0.5;
+        
+        // Handle numeric strings
+        return parseFloat(cr);
     };
     
     /**
@@ -1049,110 +1156,123 @@ const StatblockModule = (function() {
     const updateFavoritesList = function() {
         if (!favoritesListElement) return;
         
-        // Get all favorites
-        UserStore.getFavorites().then(favorites => {
-            // Clear the list
-            favoritesListElement.innerHTML = '';
-            
-            if (!favorites || favorites.length === 0) {
-                favoritesListElement.innerHTML = '<div class="list-empty">No favorites yet</div>';
-                return;
-            }
-            
-            // Find the favorite beasts in the beast list
-            const favoriteBeasts = [];
-            for (const favoriteId of favorites) {
-                const beast = beastList.find(beast => beast.id === favoriteId);
-                if (beast) {
-                    favoriteBeasts.push(beast);
-                }
-            }
-            
-            // Sort by name
-            favoriteBeasts.sort((a, b) => a.name.localeCompare(b.name));
-            
-            // Create favorite items
-            favoriteBeasts.forEach(beast => {
-                const favoriteItem = document.createElement('div');
-                favoriteItem.className = 'favorite-item';
-                
-                // More complex structure for favorite items
-                const nameElement = document.createElement('span');
-                nameElement.className = 'favorite-name';
-                nameElement.textContent = beast.name;
-                
-                const crElement = document.createElement('span');
-                crElement.className = 'favorite-cr';
-                crElement.textContent = `CR ${beast.cr}`;
-                
-                // Action buttons for quick access
-                const actionButtons = document.createElement('div');
-                actionButtons.className = 'favorite-actions';
-                
-                // Calculate beast CR to determine valid actions
-                const cr = parseFloat(beast.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
-                
-                // Wildshape button (only for CR <= 1)
-                if (cr <= 1) {
-                    const wildshapeBtn = document.createElement('button');
-                    wildshapeBtn.className = 'favorite-action wildshape-action';
-                    wildshapeBtn.title = 'Wildshape into this beast';
-                    wildshapeBtn.textContent = 'W';
-                    wildshapeBtn.setAttribute('aria-label', 'Wildshape');
+        try {
+            // Get all favorites
+            UserStore.getFavorites().then(favorites => {
+                try {
+                    // Clear the list
+                    favoritesListElement.innerHTML = '';
                     
-                    wildshapeBtn.addEventListener('click', function(event) {
-                        event.stopPropagation();
-                        selectBeast(beast.id);
-                        switchToWildshape();
+                    if (!favorites || favorites.length === 0) {
+                        favoritesListElement.innerHTML = '<div class="list-empty">No favorites yet</div>';
+                        return;
+                    }
+                    
+                    // Find the favorite beasts in the beast list
+                    const favoriteBeasts = [];
+                    for (const favoriteId of favorites) {
+                        const beast = beastList.find(beast => beast.id === favoriteId);
+                        if (beast) {
+                            favoriteBeasts.push(beast);
+                        }
+                    }
+                    
+                    // Sort by name
+                    favoriteBeasts.sort((a, b) => a.name.localeCompare(b.name));
+                    
+                    // Create favorite items
+                    favoriteBeasts.forEach(beast => {
+                        const favoriteItem = document.createElement('div');
+                        favoriteItem.className = 'favorite-item';
+                        
+                        // More complex structure for favorite items
+                        const nameElement = document.createElement('span');
+                        nameElement.className = 'favorite-name';
+                        nameElement.textContent = beast.name;
+                        
+                        const crElement = document.createElement('span');
+                        crElement.className = 'favorite-cr';
+                        crElement.textContent = `CR ${beast.cr}`;
+                        
+                        // Action buttons for quick access
+                        const actionButtons = document.createElement('div');
+                        actionButtons.className = 'favorite-actions';
+                        
+                        // Calculate beast CR to determine valid actions
+                        const cr = parseFloat(beast.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+                        
+                        // Wildshape button (only for CR <= 1)
+                        if (cr <= 1) {
+                            const wildshapeBtn = document.createElement('button');
+                            wildshapeBtn.className = 'favorite-action wildshape-action';
+                            wildshapeBtn.title = 'Wildshape into this beast';
+                            wildshapeBtn.textContent = 'W';
+                            wildshapeBtn.setAttribute('aria-label', 'Wildshape');
+                            
+                            wildshapeBtn.addEventListener('click', function(event) {
+                                event.stopPropagation();
+                                selectBeast(beast.id);
+                                switchToWildshape();
+                            });
+                            
+                            actionButtons.appendChild(wildshapeBtn);
+                        }
+                        
+                        // Conjure button (only for CR <= 2)
+                        if (cr <= 2) {
+                            const conjureBtn = document.createElement('button');
+                            conjureBtn.className = 'favorite-action conjure-action';
+                            conjureBtn.title = 'Conjure this beast';
+                            conjureBtn.textContent = 'C';
+                            conjureBtn.setAttribute('aria-label', 'Conjure');
+                            
+                            conjureBtn.addEventListener('click', function(event) {
+                                event.stopPropagation();
+                                selectBeast(beast.id);
+                                switchToConjure();
+                            });
+                            
+                            actionButtons.appendChild(conjureBtn);
+                        }
+                        
+                        // Remove button
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'favorite-action remove-action';
+                        removeBtn.title = 'Remove from favorites';
+                        removeBtn.textContent = '×';
+                        removeBtn.setAttribute('aria-label', 'Remove from favorites');
+                        
+                        removeBtn.addEventListener('click', function(event) {
+                            event.stopPropagation();
+                            toggleFavorite(beast.id);
+                        });
+                        
+                        actionButtons.appendChild(removeBtn);
+                        
+                        // Add main click handler for selection
+                        favoriteItem.addEventListener('click', function() {
+                            selectBeast(beast.id);
+                        });
+                        
+                        // Add all parts to the favorite item
+                        favoriteItem.appendChild(nameElement);
+                        favoriteItem.appendChild(crElement);
+                        favoriteItem.appendChild(actionButtons);
+                        
+                        favoritesListElement.appendChild(favoriteItem);
                     });
-                    
-                    actionButtons.appendChild(wildshapeBtn);
+                } catch (innerError) {
+                    console.error('Error updating favorites UI:', innerError);
+                    // Show a simpler fallback UI if there's an error
+                    favoritesListElement.innerHTML = '<div class="list-empty">Error displaying favorites</div>';
                 }
-                
-                // Conjure button (only for CR <= 2)
-                if (cr <= 2) {
-                    const conjureBtn = document.createElement('button');
-                    conjureBtn.className = 'favorite-action conjure-action';
-                    conjureBtn.title = 'Conjure this beast';
-                    conjureBtn.textContent = 'C';
-                    conjureBtn.setAttribute('aria-label', 'Conjure');
-                    
-                    conjureBtn.addEventListener('click', function(event) {
-                        event.stopPropagation();
-                        selectBeast(beast.id);
-                        switchToConjure();
-                    });
-                    
-                    actionButtons.appendChild(conjureBtn);
-                }
-                
-                // Remove button
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'favorite-action remove-action';
-                removeBtn.title = 'Remove from favorites';
-                removeBtn.textContent = '×';
-                removeBtn.setAttribute('aria-label', 'Remove from favorites');
-                
-                removeBtn.addEventListener('click', function(event) {
-                    event.stopPropagation();
-                    toggleFavorite(beast.id);
-                });
-                
-                actionButtons.appendChild(removeBtn);
-                
-                // Add main click handler for selection
-                favoriteItem.addEventListener('click', function() {
-                    selectBeast(beast.id);
-                });
-                
-                // Add all parts to the favorite item
-                favoriteItem.appendChild(nameElement);
-                favoriteItem.appendChild(crElement);
-                favoriteItem.appendChild(actionButtons);
-                
-                favoritesListElement.appendChild(favoriteItem);
+            }).catch(error => {
+                console.error('Error getting favorites:', error);
+                favoritesListElement.innerHTML = '<div class="list-empty">Error loading favorites</div>';
             });
-        });
+        } catch (error) {
+            console.error('Critical error in updateFavoritesList:', error);
+        }
     };
     
     /**

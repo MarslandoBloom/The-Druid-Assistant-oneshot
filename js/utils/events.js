@@ -9,7 +9,7 @@ const EventManager = (function() {
     // Event history for debugging
     const eventHistory = [];
     const MAX_HISTORY = 100;
-    const debugMode = false;
+    const debugMode = true;
     
     /**
      * Subscribe to an event
