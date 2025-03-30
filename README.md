@@ -114,3 +114,13 @@ This application helps Druid players with:
 - Added validation in createBeastItem() to handle edge cases
 - Enhanced the UI with more consistent spacing and visual hierarchy
 - Fixed multiple DOM structure and styling issues affecting list visibility
+
+### Stage 5.6: Statblock Display Reset (March 30, 2025)
+- Removed statblock display functionality to address critical rendering bug
+- Created clean slate for statblock component implementation
+- Maintained beast selection functionality while removing statblock display code
+- Updated StatblockComponent to show placeholder when beasts are selected
+- Modified event handling to maintain favoriting and tab switching functionality
+- Retained all beast list functionality while removing problematic statblock code
+- Prepared codebase for reimplementation of statblock display feature
+- This reset affects the following functions: all statblock rendering in StatblockComponent and related code in statblock.js

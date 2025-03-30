@@ -1456,44 +1456,6 @@ const StatblockModule = (function() {
         return [...environmentsSet].sort();
     };
     
-    /**
-     * Create and show a comparison view of multiple beasts
-     * @param {string[]} beastIds - Array of beast IDs to compare
-     */
-    const showBeastComparison = function(beastIds) {
-        if (!beastIds || beastIds.length === 0) return;
-        
-        // Get beast objects
-        const beastsToCompare = beastIds.map(id => beastList.find(beast => beast.id === id))
-            .filter(beast => beast !== undefined);
-        
-        if (beastsToCompare.length === 0) return;
-        
-        // Create comparison container
-        const comparisonContainer = document.createElement('div');
-        comparisonContainer.className = 'comparison-container';
-        
-        // Add statblocks for each beast
-        beastsToCompare.forEach(beast => {
-            const statblock = StatblockComponent.createStatblock(beast);
-            comparisonContainer.appendChild(statblock);
-        });
-        
-        // Show in modal
-        UIUtils.showModal(comparisonContainer, {
-            title: 'Beast Comparison',
-            width: '90%',
-            height: '80%',
-            buttons: [
-                {
-                    text: 'Close',
-                    className: 'primary-button',
-                    action: () => {}
-                }
-            ]
-        });
-    };
-    
     // Public API
     return {
         init,
@@ -1503,7 +1465,6 @@ const StatblockModule = (function() {
         sortBeastList,
         getAvailableBeastTypes,
         getAvailableEnvironments,
-        showBeastComparison,
         switchToWildshape,
         switchToConjure
     };
