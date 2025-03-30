@@ -222,26 +222,43 @@ const StatblockModule = (function() {
      * Set up virtual list for better performance
      */
     const setupVirtualList = function() {
-        if (!beastListElement) return;
-        
-        // Wrap list with virtual list container
-        virtualListContainer = document.createElement('div');
-        virtualListContainer.className = 'virtual-list';
-        virtualListContainer.style.height = '100%';
-        
-        // Create content container
-        virtualListContent = document.createElement('div');
-        virtualListContent.className = 'virtual-list-content';
-        
-        // Replace beast list with virtual list
-        beastListElement.parentNode.replaceChild(virtualListContainer, beastListElement);
-        virtualListContainer.appendChild(virtualListContent);
-        
-        // Update beastListElement reference
-        beastListElement = virtualListContent;
-        
-        // Add scroll event listener
-        virtualListContainer.addEventListener('scroll', handleScroll);
+        try {
+            if (!beastListElement) {
+                console.error('Beast list element not found');
+                return;
+            }
+            
+            // Ensure we have a parent node
+            if (!beastListElement.parentNode) {
+                console.error('Beast list element has no parent node');
+                return;
+            }
+            
+            // Wrap list with virtual list container
+            virtualListContainer = document.createElement('div');
+            virtualListContainer.className = 'virtual-list';
+            virtualListContainer.style.height = '100%';
+            
+            // Create content container
+            virtualListContent = document.createElement('div');
+            virtualListContent.className = 'virtual-list-content';
+            
+            // Replace beast list with virtual list
+            beastListElement.parentNode.replaceChild(virtualListContainer, beastListElement);
+            virtualListContainer.appendChild(virtualListContent);
+            
+            // Update beastListElement reference
+            beastListElement = virtualListContent;
+            
+            // Add scroll event listener
+            virtualListContainer.addEventListener('scroll', handleScroll);
+            
+            console.log('Virtual list setup complete');
+        } catch (error) {
+            console.error('Error setting up virtual list:', error);
+            // If virtual list setup fails, try to recover
+            beastListElement = document.getElementById('beast-list');
+        }
     };
     
     /**
@@ -526,7 +543,12 @@ const StatblockModule = (function() {
      * Render the beast list
      */
     const renderBeastList = function() {
-        if (!beastListElement) return;
+        if (!beastListElement) {
+            console.error('Beast list element not found');
+            return;
+        }
+        
+        console.log('Starting beast list rendering...');
         
         // Clear list
         beastListElement.innerHTML = '';
@@ -535,13 +557,8 @@ const StatblockModule = (function() {
             showEmptyState('No beasts found matching current filters and search.');
             return;
         }
-        
-        // Set height for virtual list
-        if (virtualListContent) {
-            virtualListContent.style.height = `${filteredList.length * ITEM_HEIGHT}px`;
-        }
-        
-        // Render visible items
+                
+        // Render all beasts directly
         renderVisibleItems();
         
         // If there's a selected beast, scroll to it
@@ -549,44 +566,59 @@ const StatblockModule = (function() {
             scrollToSelectedBeast();
         }
         
-        // Add result count
+        // Update or add result count at the top of sidebar
+        // First, remove any existing result count element to avoid duplicates
+        const existingResultCount = document.querySelector('.result-count');
+        if (existingResultCount) {
+            existingResultCount.remove();
+        }
+        
+        // Get sidebar element (parent of virtual list container's parent)
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) {
+            console.error('Sidebar element not found');
+            return;
+        }
+        
+        // Create and insert result count at the right position
         const resultCount = document.createElement('div');
         resultCount.className = 'result-count';
         resultCount.textContent = `${filteredList.length} beasts found`;
-        virtualListContainer.insertAdjacentElement('beforebegin', resultCount);
+        
+        // Insert after the filter container
+        const filterContainer = document.querySelector('.filter-container');
+        if (filterContainer && filterContainer.nextSibling) {
+            sidebar.insertBefore(resultCount, filterContainer.nextSibling);
+        } else {
+            sidebar.appendChild(resultCount);
+        }
+        
+        console.log('Beast list rendering complete');
     };
     
     /**
-     * Render only the items visible in the viewport plus padding
+     * Render all beast items directly
      */
     const renderVisibleItems = function() {
-        if (!virtualListContainer || !virtualListContent || filteredList.length === 0) return;
+        if (!virtualListContainer || !virtualListContent || filteredList.length === 0) {
+            console.warn('Cannot render items - missing container, content, or empty list');
+            return;
+        }
+        
+        // For debugging, let's render ALL beasts directly without virtual scrolling
+        console.log(`Rendering ${filteredList.length} beast items in list`);
         
         // Clear existing items
         virtualListContent.innerHTML = '';
         
-        // Calculate visible range
-        const scrollTop = virtualListContainer.scrollTop;
-        const viewportHeight = virtualListContainer.clientHeight;
-        
-        // Calculate start and end indices with padding
-        let startIndex = Math.floor(scrollTop / ITEM_HEIGHT) - VISIBLE_PADDING;
-        startIndex = Math.max(0, startIndex);
-        
-        let endIndex = Math.ceil((scrollTop + viewportHeight) / ITEM_HEIGHT) + VISIBLE_PADDING;
-        endIndex = Math.min(filteredList.length - 1, endIndex);
-        
-        // Render only visible items
-        for (let i = startIndex; i <= endIndex; i++) {
+        // Render all items directly instead of using virtual scrolling
+        for (let i = 0; i < filteredList.length; i++) {
             const beast = filteredList[i];
             const beastItem = createBeastItem(beast);
             
-            // Position absolutely
-            beastItem.style.position = 'absolute';
-            beastItem.style.top = `${i * ITEM_HEIGHT}px`;
-            beastItem.style.left = '0';
-            beastItem.style.right = '0';
-            beastItem.style.height = `${ITEM_HEIGHT}px`;
+            // Use normal flow positioning instead of absolute positioning
+            beastItem.style.position = 'relative';
+            beastItem.style.margin = '8px';
             
             virtualListContent.appendChild(beastItem);
             
@@ -594,7 +626,14 @@ const StatblockModule = (function() {
             if (beast.id === selectedBeastId) {
                 beastItem.classList.add('selected');
             }
+            
+            // Log the first few items for debugging
+            if (i < 3) {
+                console.log(`Added beast item: ${beast.name} (${beast.id})`);
+            }
         }
+        
+        console.log('Finished rendering beast list');
     };
     
     /**
@@ -603,6 +642,11 @@ const StatblockModule = (function() {
      * @returns {HTMLElement} The beast item element
      */
     const createBeastItem = function(beast) {
+        if (!beast || !beast.id) {
+            console.error('Invalid beast data:', beast);
+            return document.createElement('div');
+        }
+        
         const beastItem = document.createElement('div');
         beastItem.className = 'beast-item';
         beastItem.dataset.id = beast.id;

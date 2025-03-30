@@ -260,7 +260,8 @@ header h1 {
     border-radius: var(--border-radius);
     flex-grow: 1;
     overflow-y: auto;
-    max-height: 400px;
+    min-height: 400px;
+    max-height: 600px;
 }
 
 .list-empty {
