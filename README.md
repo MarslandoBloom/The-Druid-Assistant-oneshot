@@ -75,3 +75,11 @@ This application helps Druid players with:
 - Improved robustness of event handling across components
 - Enhanced backwards compatibility between different event publishing methods
 - Updated error handling to provide better feedback during search operations
+
+### Stage 5.2: Beast Data Parser Fix (March 30, 2025)
+- Fixed critical bug in beast markdown parser that was only identifying some of the beasts
+- Replaced logic that assumed each beast was exactly 2 blocks of text with a more robust regex-based approach
+- Updated parser to properly handle the variable structure of the markdown format
+- Fixed issue with the number of beasts being imported showing incorrectly
+- Improved validation of parsed beast data to ensure required fields are present
+- Removed dependency on hardcoded sample data which is no longer needed

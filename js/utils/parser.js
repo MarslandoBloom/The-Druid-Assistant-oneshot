@@ -11,22 +11,23 @@ const Parser = (function() {
     const parseBeastMarkdown = (markdown) => {
         const beasts = [];
         
-        // Split the markdown by the beast separator
-        const beastBlocks = markdown.split('___').filter(block => block.trim());
+        // Use regex to find complete beast blocks instead of splitting by '___'
+        // This handles the variable structure of the markdown better
+        const beastSectionRegex = /___\s+>## ([^\r\n]+)\s+>([^\r\n]+)([\s\S]*?)(?=___\s+>## |$)/g;
         
-        for (let i = 0; i < beastBlocks.length; i += 2) {
-            if (i + 1 >= beastBlocks.length) break;
-            
+        let match;
+        while ((match = beastSectionRegex.exec(markdown)) !== null) {
             try {
-                const headerBlock = beastBlocks[i];
-                const contentBlock = beastBlocks[i + 1];
+                const name = match[1].trim();
+                const typeInfo = match[2].trim().replace(/^\*|\*$/g, ''); // Remove asterisks
+                // The full content block after name and type
+                const contentBlock = match[3];
                 
-                // Extract beast name and type/alignment
-                const nameMatch = headerBlock.match(/^>## ([^\r\n]+)\r?\n>(.+)\r?\n/m);
-                if (!nameMatch) continue;
-                
-                const name = nameMatch[1].trim();
-                const typeInfo = nameMatch[2].trim().replace(/^\*|\*$/g, ''); // Remove asterisks
+                // Validate we have the expected content
+                if (!contentBlock.includes('**Armor Class**') || !contentBlock.includes('**Challenge**')) {
+                    console.error(`Beast ${name} is missing required fields`);
+                    continue;
+                }
                 
                 // Parse size, type, and alignment
                 const typeInfoParts = typeInfo.split(',');

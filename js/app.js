@@ -46,8 +46,8 @@ const DruidAssistant = (function() {
             // Initialize data management buttons
             initDataControls();
             
-            // Check if database is empty and load sample data if needed
-            await loadInitialDataIfNeeded();
+            // Check database state without loading sample data
+            await checkDatabaseState();
             
             // Mark as initialized
             state.initialized = true;
@@ -173,47 +173,24 @@ const DruidAssistant = (function() {
         });
     };
     
-    // Check if database is empty and load sample data if needed
-    const loadInitialDataIfNeeded = async () => {
+    // Check database state without loading any sample data
+    const checkDatabaseState = async () => {
         try {
-            // Check if database is empty
+            // Check if database has data
             const dbState = await DataManager.checkDatabaseEmpty();
             
-            // If database is empty, load sample data
-            if (dbState.isEmpty) {
-                const loadingIndicator = UIUtils.showLoading('Loading initial data...');
-                
-                try {
-                    // Load sample data using DataManager
-                    const result = await DataManager.loadSampleData({
-                        showNotification: false  // We'll handle notifications ourselves
-                    });
-                    
-                    state.dataLoaded = true;
-                    
-                    EventManager.publish(EventManager.EVENTS.DATA_IMPORTED, {
-                        source: 'initial',
-                        beasts: result.beastsLoaded,
-                        spells: result.spellsLoaded
-                    });
-                    
-                    if (result.beastsLoaded > 0 || result.spellsLoaded > 0) {
-                        showNotification('Sample data loaded successfully', 'success');
-                    } else {
-                        showError('No sample data available. You can import your own data using the Import button.');
-                    }
-                } catch (error) {
-                    console.error('Error loading sample data:', error);
-                    showError('Failed to load sample data. You can import your own data using the Import button.');
-                } finally {
-                    loadingIndicator.hide();
-                }
-            } else {
-                state.dataLoaded = true;
+            // Update dataLoaded state based on database content
+            state.dataLoaded = !dbState.isEmpty;
+            
+            if (!dbState.isEmpty) {
                 console.log(`Database contains ${dbState.beastCount} beasts and ${dbState.spellCount} spells`);
+            } else {
+                console.log('Database is empty. Please import data using the Import button.');
+                // Inform the user they need to import data
+                showNotification('Please import beast and spell data using the Import button', 'info');
             }
         } catch (error) {
-            console.error('Error checking initial data:', error);
+            console.error('Error checking database state:', error);
         }
     };
     
@@ -339,8 +316,7 @@ const DruidAssistant = (function() {
             // Use DataManager to reset data
             const result = await DataManager.resetAllData({
                 showConfirmation: true,       // Show confirmation dialog
-                showNotification: false,       // We'll handle notifications
-                loadSampleData: true           // Load sample data after reset
+                showNotification: false        // We'll handle notifications
             });
             
             // If reset was cancelled, do nothing
