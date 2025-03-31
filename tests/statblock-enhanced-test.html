@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Statblock Component Test</title>
+    <link rel="stylesheet" href="statblock-styles.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .beast-list {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .beast-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .beast-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .beast-item.selected {
+            background-color: #e6f7e6;
+            border-left: 4px solid #006400;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-button {
+            padding: 8px 16px;
+            background-color: #006400;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .action-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Enhanced Statblock Component Test</h1>
+    <p>This page demonstrates the enhanced statblock component with integration with action buttons.</p>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h2>Beast List</h2>
+            <div class="beast-list" id="beast-list"></div>
+        </div>
+        <div class="main-content">
+            <div id="statblock-display"></div>
+            <div class="action-buttons">
+                <button id="wildshape-button" class="action-button" disabled>Wildshape</button>
+                <button id="conjure-button" class="action-button" disabled>Conjure Animals</button>
+                <button id="favorite-button" class="action-button" disabled>Add to Favorites</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Simulate the Database and UserStore modules
+        window.Database = {
+            generateUUID: function() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+        };
+        
+        // Mock UserStore with localStorage
+        window.UserStore = {
+            _getKey: function(id) {
+                return `favorite:${id}`;
+            },
+            
+            addFavorite: function(id) {
+                localStorage.setItem(this._getKey(id), 'true');
+                return Promise.resolve();
+            },
+            
+            removeFavorite: function(id) {
+                localStorage.removeItem(this._getKey(id));
+                return Promise.resolve();
+            },
+            
+            isFavorite: function(id) {
+                return Promise.resolve(localStorage.getItem(this._getKey(id)) === 'true');
+            }
+        };
+        
+        // Mock UIUtils
+        window.UIUtils = {
+            showNotification: function(message, type) {
+                console.log(`[${type}]`, message);
+                alert(message);
+            }
+        };
+        
+        // Mock EventManager
+        window.EventManager = {
+            EVENTS: {
+                BEAST_SELECTED: 'beast:selected',
+                BEAST_FAVORITE_ADDED: 'beast:favorite:added',
+                BEAST_FAVORITE_REMOVED: 'beast:favorite:removed',
+                TAB_CHANGED: 'tab:changed'
+            },
+            
+            _subscribers: {},
+            
+            subscribe: function(event, callback) {
+                if (!this._subscribers[event]) {
+                    this._subscribers[event] = [];
+                }
+                this._subscribers[event].push(callback);
+            },
+            
+            publish: function(event, data) {
+                if (!this._subscribers[event]) return;
+                this._subscribers[event].forEach(callback => callback(data));
+                console.log(`Event published: ${event}`, data);
+            }
+        };
+        
+        // Sample beast data
+        const beasts = [
+            {
+                id: "beast-1",
+                name: "Ape",
+                size: "Medium",
+                type: "Beast",
+                alignment: "unaligned",
+                ac: "12",
+                hp: "19 (3d8 + 6)",
+                speed: "30 ft., climb 30 ft.",
+                abilities: {
+                    str: { score: 16, modifier: "+3" },
+                    dex: { score: 14, modifier: "+2" },
+                    con: { score: 14, modifier: "+2" },
+                    int: { score: 6, modifier: "-2" },
+                    wis: { score: 12, modifier: "+1" },
+                    cha: { score: 7, modifier: "-2" }
+                },
+                skills: "Athletics +5, Perception +3",
+                senses: "passive Perception 13",
+                languages: "—",
+                cr: "1/2 (100 XP)",
+                profBonus: "+2",
+                traits: [],
+                actions: [
+                    {
+                        name: "Multiattack",
+                        description: "The ape makes two fist attacks."
+                    },
+                    {
+                        name: "Fist",
+                        description: "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage."
+                    },
+                    {
+                        name: "Rock",
+                        description: "Ranged Weapon Attack: +5 to hit, range 25/50 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage."
+                    }
+                ],
+                environment: "Forest"
+            },
+            {
+                id: "beast-2",
+                name: "Giant Wasp",
+                size: "Medium",
+                type: "Beast",
+                alignment: "unaligned",
+                ac: "12",
+                hp: "13 (3d8)",
+                speed: "10 ft., fly 50 ft.",
+                abilities: {
+                    str: { score: 10, modifier: "+0" },
+                    dex: { score: 14, modifier: "+2" },
+                    con: { score: 10, modifier: "+0" },
+                    int: { score: 1, modifier: "-5" },
+                    wis: { score: 10, modifier: "+0" },
+                    cha: { score: 3, modifier: "-4" }
+                },
+                senses: "passive Perception 10",
+                languages: "—",
+                cr: "1/2 (100 XP)",
+                profBonus: "+2",
+                traits: [],
+                actions: [
+                    {
+                        name: "Sting",
+                        description: "Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 5 (1d6 + 2) piercing damage, and the target must make a DC 11 Constitution saving throw, taking 10 (3d6) poison damage on a failed save, or half as much damage on a successful one. If the poison damage reduces the target to 0 hit points, the target is stable but poisoned for 1 hour, even after regaining hit points, and is paralyzed while poisoned in this way."
+                    }
+                ],
+                environment: "Forest, Grassland"
+            },
+            {
+                id: "beast-3",
+                name: "Giant Wolf Spider",
+                size: "Medium",
+                type: "Beast",
+                alignment: "unaligned",
+                ac: "13",
+                hp: "11 (2d8 + 2)",
+                speed: "40 ft., climb 40 ft.",
+                abilities: {
+                    str: { score: 12, modifier: "+1" },
+                    dex: { score: 16, modifier: "+3" },
+                    con: { score: 13, modifier: "+1" },
+                    int: { score: 3, modifier: "-4" },
+                    wis: { score: 12, modifier: "+1" },
+                    cha: { score: 4, modifier: "-3" }
+                },
+                skills: "Perception +3, Stealth +7",
+                senses: "blindsight 10 ft., darkvision 60 ft., passive Perception 13",
+                languages: "—",
+                cr: "1/4 (50 XP)",
+                profBonus: "+2",
+                traits: [
+                    {
+                        name: "Spider Climb",
+                        description: "The spider can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check."
+                    },
+                    {
+                        name: "Web Sense",
+                        description: "While in contact with a web, the spider knows the exact location of any other creature in contact with the same web."
+                    },
+                    {
+                        name: "Web Walker",
+                        description: "The spider ignores movement restrictions caused by webbing."
+                    }
+                ],
+                actions: [
+                    {
+                        name: "Bite",
+                        description: "Melee Weapon Attack: +3 to hit, reach 5 ft., one creature. Hit: 4 (1d6 + 1) piercing damage, and the target must make a DC 11 Constitution saving throw, taking 7 (2d6) poison damage on a failed save, or half as much damage on a successful one. If the poison damage reduces the target to 0 hit points, the target is stable but poisoned for 1 hour, even after regaining hit points, and is paralyzed while poisoned in this way."
+                    }
+                ],
+                environment: "Forest",
+                additionalText: "Smaller than a giant spider, a giant wolf spider hunts prey across open ground or hides in a burrow or crevice, or in a hidden cavity beneath debris."
+            },
+            {
+                id: "beast-4",
+                name: "Panther",
+                size: "Medium",
+                type: "Beast",
+                alignment: "unaligned",
+                ac: "12",
+                hp: "13 (3d8)",
+                speed: "50 ft., climb 40 ft.",
+                abilities: {
+                    str: { score: 14, modifier: "+2" },
+                    dex: { score: 15, modifier: "+2" },
+                    con: { score: 10, modifier: "+0" },
+                    int: { score: 3, modifier: "-4" },
+                    wis: { score: 14, modifier: "+2" },
+                    cha: { score: 7, modifier: "-2" }
+                },
+                skills: "Perception +4, Stealth +6",
+                senses: "passive Perception 14",
+                languages: "—",
+                cr: "1/4 (50 XP)",
+                profBonus: "+2",
+                traits: [
+                    {
+                        name: "Keen Smell",
+                        description: "The panther has advantage on Wisdom (Perception) checks that rely on smell."
+                    },
+                    {
+                        name: "Pounce",
+                        description: "If the panther moves at least 20 feet straight toward a creature and then hits it with a claw attack on the same turn, that target must succeed on a DC 12 Strength saving throw or be knocked prone. If the target is prone, the panther can make one bite attack against it as a bonus action."
+                    }
+                ],
+                actions: [
+                    {
+                        name: "Bite",
+                        description: "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+                    },
+                    {
+                        name: "Claw",
+                        description: "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) slashing damage."
+                    }
+                ],
+                environment: "Forest, Grassland"
+            },
+            {
+                id: "beast-5",
+                name: "Suturefly",
+                size: "Tiny",
+                type: "Beast",
+                alignment: "unaligned",
+                ac: "12",
+                hp: "10 (4d4)",
+                speed: "10 ft., fly 40 ft. (hover)",
+                abilities: {
+                    str: { score: 1, modifier: "-5" },
+                    dex: { score: 15, modifier: "+2" },
+                    con: { score: 10, modifier: "+0" },
+                    int: { score: 1, modifier: "-5" },
+                    wis: { score: 12, modifier: "+1" },
+                    cha: { score: 4, modifier: "-3" }
+                },
+                skills: "Stealth +4",
+                senses: "darkvision 60 ft., passive Perception 11",
+                languages: "—",
+                cr: "1/4 (50 XP)",
+                profBonus: "+2",
+                traits: [
+                    {
+                        name: "Detect Lies",
+                        description: "The suturefly knows if it hears a lie and can pinpoint the location of a creature within 60 feet of it that lied within the last minute."
+                    },
+                    {
+                        name: "Forest Camouflage",
+                        description: "The suturefly has advantage on Dexterity (Stealth) checks made to hide in forested terrain."
+                    }
+                ],
+                actions: [
+                    {
+                        name: "Sew",
+                        description: "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) piercing damage, and the target must succeed on a DC 12 Dexterity saving throw or the suturefly sews the target's mouth, nose, or one of its eyes closed (the suturefly's choice). With supernatural speed, the suturefly repeatedly pierces the target's face, each time threading a loop of the target's own skin through the previous hole. These skin loops rapidly blacken, shrink, and draw the orifice tightly closed. If a target's mouth is sewn shut, it can't speak. If its mouth and nose are sewn shut, it can't breathe, and if both eyes are sewn shut, it is blinded. A creature, including the target, can take its action to cut open one of the sewn orifices by succeeding on a DC 12 Dexterity check with an edged weapon or tool."
+                    }
+                ],
+                environment: "Forest",
+                additionalText: "This darting creature resembles a dragonfly, but with three pairs of gossamer wings and a body made from splintered wood. Flashes of bright colors run along its body."
+            }
+        ];
+        
+        // Load scripts and initialize UI after DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load the statblock component script
+            const script = document.createElement('script');
+            script.src = 'statblock-component.js';
+            script.onload = function() {
+                // Initialize the statblock component
+                EnhancedStatblockComponent.init('statblock-display');
+                
+                // Populate beast list
+                const beastList = document.getElementById('beast-list');
+                beasts.forEach(beast => {
+                    const beastItem = document.createElement('div');
+                    beastItem.className = 'beast-item';
+                    beastItem.dataset.id = beast.id;
+                    
+                    const beastName = document.createElement('div');
+                    beastName.className = 'beast-name';
+                    beastName.textContent = beast.name;
+                    
+                    const beastInfo = document.createElement('div');
+                    beastInfo.className = 'beast-info';
+                    beastInfo.textContent = `${beast.size} ${beast.type}, CR ${beast.cr}`;
+                    
+                    beastItem.appendChild(beastName);
+                    beastItem.appendChild(beastInfo);
+                    
+                    beastItem.addEventListener('click', function() {
+                        // Remove selected class from all items
+                        document.querySelectorAll('.beast-item').forEach(item => {
+                            item.classList.remove('selected');
+                        });
+                        
+                        // Add selected class to clicked item
+                        beastItem.classList.add('selected');
+                        
+                        // Find the beast by ID
+                        const selectedBeast = beasts.find(b => b.id === beast.id);
+                        
+                        // Trigger the event
+                        EventManager.publish(EventManager.EVENTS.BEAST_SELECTED, selectedBeast);
+                    });
+                    
+                    beastList.appendChild(beastItem);
+                });
+                
+                // Add message handlers for buttons
+                window.handleWildshapeClick = function() {
+                    const beast = EnhancedStatblockComponent.getCurrentBeast();
+                    if (beast) {
+                        UIUtils.showNotification(`Using wildshape to transform into a ${beast.name}`, 'success');
+                    }
+                };
+                
+                window.handleConjureClick = function() {
+                    const beast = EnhancedStatblockComponent.getCurrentBeast();
+                    if (beast) {
+                        // Calculate the number of summoned creatures based on CR
+                        let count = 1;
+                        const cr = parseFloat(beast.cr);
+                        if (cr <= 0.25) count = 8;
+                        else if (cr <= 0.5) count = 4;
+                        else if (cr <= 1) count = 2;
+                        
+                        UIUtils.showNotification(`Conjuring ${count} ${beast.name}(s)`, 'success');
+                    }
+                };
+            };
+            
+            document.body.appendChild(script);
+        });
+    </script>
+</body>
+</html>

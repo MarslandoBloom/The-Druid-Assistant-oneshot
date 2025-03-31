@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statblock Renderer Test</title>
+    <link rel="stylesheet" href="statblock-styles.css">
+</head>
+<body>
+    <div id="container" style="max-width: 800px; margin: 20px auto; padding: 20px;">
+        <h1>Statblock Renderer Test</h1>
+        <p>This page demonstrates the statblock renderer component for The Druid's Assistant.</p>
+        
+        <div id="statblock-container"></div>
+        
+        <div style="margin-top: 20px;">
+            <button id="select-beast">Load Different Beast</button>
+        </div>
+    </div>
+    
+    <script>
+        // Simulate the Database UUID generator
+        if (!window.Database) {
+            window.Database = {
+                generateUUID: function() {
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                        const r = Math.random() * 16 | 0;
+                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                }
+            };
+        }
+        
+        // Sample beast data (we would normally get this from the parser)
+        const sampleBeasts = [
+            {
+                id: Database.generateUUID(),
+                name: "Ape",
+                size: "Medium",
+                type: "Beast",
+                alignment: "unaligned",
+                ac: "12",
+                hp: "19 (3d8 + 6)",
+                speed: "30 ft., climb 30 ft.",
+                abilities: {
+                    str: { score: 16, modifier: "+3" },
+                    dex: { score: 14, modifier: "+2" },
+                    con: { score: 14, modifier: "+2" },
+                    int: { score: 6, modifier: "-2" },
+                    wis: { score: 12, modifier: "+1" },
+                    cha: { score: 7, modifier: "-2" }
+                },
+                skills: "Athletics +5, Perception +3",
+                senses: "passive Perception 13",
+                languages: "—",
+                cr: "1/2 (100 XP)",
+                profBonus: "+2",
+                traits: [],
+                actions: [
+                    {
+                        name: "Multiattack",
+                        description: "The ape makes two fist attacks."
+                    },
+                    {
+                        name: "Fist",
+                        description: "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage."
+                    },
+                    {
+                        name: "Rock",
+                        description: "Ranged Weapon Attack: +5 to hit, range 25/50 ft., one target. Hit: 6 (1d6 + 3) bludgeoning damage."
+                    }
+                ],
+                environment: "Forest"
+            },
+            {
+                id: Database.generateUUID(),
+                name: "Giant Wolf Spider",
+                size: "Medium",
+                type: "Beast",
+                alignment: "unaligned",
+                ac: "13",
+                hp: "11 (2d8 + 2)",
+                speed: "40 ft., climb 40 ft.",
+                abilities: {
+                    str: { score: 12, modifier: "+1" },
+                    dex: { score: 16, modifier: "+3" },
+                    con: { score: 13, modifier: "+1" },
+                    int: { score: 3, modifier: "-4" },
+                    wis: { score: 12, modifier: "+1" },
+                    cha: { score: 4, modifier: "-3" }
+                },
+                skills: "Perception +3, Stealth +7",
+                senses: "blindsight 10 ft., darkvision 60 ft., passive Perception 13",
+                languages: "—",
+                cr: "1/4 (50 XP)",
+                profBonus: "+2",
+                traits: [
+                    {
+                        name: "Spider Climb",
+                        description: "The spider can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check."
+                    },
+                    {
+                        name: "Web Sense",
+                        description: "While in contact with a web, the spider knows the exact location of any other creature in contact with the same web."
+                    },
+                    {
+                        name: "Web Walker",
+                        description: "The spider ignores movement restrictions caused by webbing."
+                    }
+                ],
+                actions: [
+                    {
+                        name: "Bite",
+                        description: "Melee Weapon Attack: +3 to hit, reach 5 ft., one creature. Hit: 4 (1d6 + 1) piercing damage, and the target must make a DC 11 Constitution saving throw, taking 7 (2d6) poison damage on a failed save, or half as much damage on a successful one. If the poison damage reduces the target to 0 hit points, the target is stable but poisoned for 1 hour, even after regaining hit points, and is paralyzed while poisoned in this way."
+                    }
+                ],
+                environment: "Forest"
+            }
+        ];
+        
+        // Current beast index
+        let currentBeastIndex = 0;
+        
+        // Load the script after the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load the renderer script
+            const script = document.createElement('script');
+            script.src = 'statblock-renderer.js';
+            script.onload = function() {
+                // Render the first beast
+                renderCurrentBeast();
+                
+                // Add button event listener
+                document.getElementById('select-beast').addEventListener('click', function() {
+                    currentBeastIndex = (currentBeastIndex + 1) % sampleBeasts.length;
+                    renderCurrentBeast();
+                });
+            };
+            document.body.appendChild(script);
+        });
+        
+        function renderCurrentBeast() {
+            // Get the current beast
+            const beast = sampleBeasts[currentBeastIndex];
+            
+            // Render the statblock
+            testStatblockRenderer(beast, 'statblock-container');
+        }
+    </script>
+</body>
+</html>
