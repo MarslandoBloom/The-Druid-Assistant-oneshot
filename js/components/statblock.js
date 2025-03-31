@@ -11,13 +11,30 @@ const StatblockComponent = (function() {
      * Initialize the statblock component
      */
     const init = function() {
-        statblockContainer = document.getElementById('statblock-display');
-        
-        // Subscribe to events
-        EventManager.subscribe(EventManager.EVENTS.BEAST_SELECTED, handleBeastSelected);
-        
-        // Initialize action buttons
-        initActionButtons();
+        try {
+            console.log('StatblockComponent: Initializing...');
+            statblockContainer = document.getElementById('statblock-display');
+            
+            if (!statblockContainer) {
+                console.error('StatblockComponent: Failed to find statblock-display element');
+                return;
+            }
+            
+            // Subscribe to events
+            if (typeof EventManager === 'undefined') {
+                console.error('StatblockComponent: EventManager is not defined');
+            } else {
+                EventManager.subscribe(EventManager.EVENTS.BEAST_SELECTED, handleBeastSelected);
+                console.log('StatblockComponent: Subscribed to BEAST_SELECTED event');
+            }
+            
+            // Initialize action buttons
+            initActionButtons();
+            
+            console.log('StatblockComponent: Initialization complete');
+        } catch (error) {
+            console.error('StatblockComponent: Error during initialization:', error);
+        }
     };
     
     /**
@@ -47,19 +64,65 @@ const StatblockComponent = (function() {
      * @param {Object} beast - The selected beast
      */
     const handleBeastSelected = function(beast) {
-        if (!beast) return;
-        
-        currentBeast = beast;
-        
-        // Placeholder: Clear and show message that we're rebuilding this feature
-        clearStatblock();
-        statblockContainer.innerHTML = '<div class="statblock-placeholder">Statblock display is currently being rebuilt. Please check back later.</div>';
-        
-        // Enable action buttons
-        enableActionButtons();
-        
-        // Update favorite button state
-        updateFavoriteButtonState(beast);
+        try {
+            console.log('StatblockComponent: Beast selected event received', beast ? beast.id : 'No beast');
+            
+            if (!beast) {
+                console.warn('StatblockComponent: Received null or undefined beast');
+                return;
+            }
+            
+            if (!statblockContainer) {
+                console.error('StatblockComponent: statblockContainer is null or undefined');
+                return;
+            }
+            
+            // Log the beast data structure for debugging
+            console.log('StatblockComponent: Beast data structure:', JSON.stringify(beast, null, 2));
+            
+            currentBeast = beast;
+            
+            // Use the StatblockRenderer to render the statblock
+            try {
+                if (typeof StatblockRenderer === 'undefined') {
+                    console.error('StatblockComponent: StatblockRenderer is not defined');
+                    statblockContainer.innerHTML = '<div class="statblock-error"><h3>Error</h3><p>StatblockRenderer is not available</p></div>';
+                } else {
+                    // Use the renderer to display the statblock
+                    StatblockRenderer.renderStatblock(beast, statblockContainer);
+                    console.log('StatblockComponent: Statblock rendered successfully');
+                }
+            } catch (renderError) {
+                console.error('StatblockComponent: Error rendering statblock:', renderError);
+                statblockContainer.innerHTML = `<div class="statblock-error">
+                    <h3>Error Rendering Statblock</h3>
+                    <p>${renderError.message}</p>
+                </div>`;
+            }
+            
+            // Enable action buttons
+            enableActionButtons();
+            
+            // Update favorite button state
+            updateFavoriteButtonState(beast);
+            
+            console.log('StatblockComponent: Beast rendering completed successfully');
+        } catch (error) {
+            console.error('StatblockComponent: Error in handleBeastSelected:', error);
+            
+            // Try to show an error message in the statblock container
+            try {
+                if (statblockContainer) {
+                    statblockContainer.innerHTML = `<div class="statblock-error">
+                        <h3>Error Displaying Statblock</h3>
+                        <p>${error.message}</p>
+                        <p>Check browser console for details (F12).</p>
+                    </div>`;
+                }
+            } catch (innerError) {
+                console.error('StatblockComponent: Failed to display error message:', innerError);
+            }
+        }
     };
     
     /**
@@ -145,20 +208,25 @@ const StatblockComponent = (function() {
      * Clear the statblock container
      */
     const clearStatblock = function() {
-        if (statblockContainer) {
-            statblockContainer.innerHTML = '<div class="statblock-placeholder">Select a beast to view its statblock</div>';
+        try {
+            if (statblockContainer) {
+                statblockContainer.innerHTML = '<div class="statblock-placeholder">Select a beast to view its statblock</div>';
+            }
+            
+            // Disable action buttons
+            const wildshapeButton = document.getElementById('wildshape-button');
+            const conjureButton = document.getElementById('conjure-button');
+            const favoriteButton = document.getElementById('favorite-button');
+            
+            if (wildshapeButton) wildshapeButton.disabled = true;
+            if (conjureButton) conjureButton.disabled = true;
+            if (favoriteButton) favoriteButton.disabled = true;
+            
+            currentBeast = null;
+            console.log('StatblockComponent: Statblock cleared successfully');
+        } catch (error) {
+            console.error('StatblockComponent: Error clearing statblock:', error);
         }
-        
-        // Disable action buttons
-        const wildshapeButton = document.getElementById('wildshape-button');
-        const conjureButton = document.getElementById('conjure-button');
-        const favoriteButton = document.getElementById('favorite-button');
-        
-        if (wildshapeButton) wildshapeButton.disabled = true;
-        if (conjureButton) conjureButton.disabled = true;
-        if (favoriteButton) favoriteButton.disabled = true;
-        
-        currentBeast = null;
     };
     
     /**

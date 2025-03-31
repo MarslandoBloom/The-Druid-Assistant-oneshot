@@ -84,66 +84,118 @@ const EventManager = (function() {
      * @returns {boolean} True if event had subscribers
      */
     const publish = (eventName, data = {}) => {
-        if (!eventName) {
-            throw new Error('Event name is required');
-        }
-        
-        // Add timestamp to event data
-        const eventData = {
-            ...data,
-            _timestamp: Date.now(),
-            _eventName: eventName
-        };
-        
-        // Log event to history
-        if (eventHistory.length >= MAX_HISTORY) {
-            eventHistory.shift();
-        }
-        eventHistory.push({
-            eventName,
-            data: eventData,
-            timestamp: eventData._timestamp
-        });
-        
-        // Log published event in debug mode
-        if (debugMode) {
-            console.log(`Event: Published '${eventName}'`, eventData);
-        }
-        
-        // If no listeners, return false
-        if (!listeners.has(eventName)) {
-            return false;
-        }
-        
-        const eventListeners = listeners.get(eventName);
-        const onceListeners = [];
-        
-        // Call each listener
-        eventListeners.forEach(subscription => {
-            try {
-                const { callback, options } = subscription;
-                callback.call(options.context, eventData);
-                
-                // Track 'once' listeners to remove later
-                if (options.once) {
-                    onceListeners.push(subscription);
-                }
-            } catch (error) {
-                console.error(`Error in event listener for '${eventName}':`, error);
+        try {
+            if (!eventName) {
+                throw new Error('Event name is required');
             }
-        });
-        
-        // Remove 'once' listeners
-        if (onceListeners.length > 0) {
-            onceListeners.forEach(onceListener => {
-                const index = eventListeners.indexOf(onceListener);
-                if (index !== -1) {
-                    eventListeners.splice(index, 1);
+            
+            // Add timestamp to event data
+            const eventData = {
+                ...data,
+                _timestamp: Date.now(),
+                _eventName: eventName
+            };
+            
+            // Log event to history
+            try {
+                if (eventHistory.length >= MAX_HISTORY) {
+                    eventHistory.shift();
+                }
+                eventHistory.push({
+                    eventName,
+                    data: eventData,
+                    timestamp: eventData._timestamp
+                });
+            } catch (historyError) {
+                console.error(`EventManager: Error logging event to history:`, historyError);
+                // Continue with event publishing even if history tracking fails
+            }
+            
+            // Log published event in debug mode
+            if (debugMode) {
+                console.log(`EventManager: Published '${eventName}'`, eventData);
+            }
+            
+            // If no listeners, return false
+            if (!listeners.has(eventName)) {
+                if (debugMode) {
+                    console.warn(`EventManager: No listeners for event '${eventName}'`);
+                }
+                return false;
+            }
+            
+            const eventListeners = listeners.get(eventName);
+            if (!eventListeners || eventListeners.length === 0) {
+                if (debugMode) {
+                    console.warn(`EventManager: Empty listener array for event '${eventName}'`);
+                }
+                return false;
+            }
+            
+            const onceListeners = [];
+            let errorCount = 0;
+            
+            // Call each listener
+            eventListeners.forEach((subscription, index) => {
+                try {
+                    if (!subscription || typeof subscription !== 'object') {
+                        console.error(`EventManager: Invalid subscription at index ${index} for event '${eventName}'`);
+                        return;
+                    }
+                    
+                    const { callback, options } = subscription;
+                    
+                    if (!callback || typeof callback !== 'function') {
+                        console.error(`EventManager: Invalid callback in subscription for event '${eventName}'`);
+                        return;
+                    }
+                    
+                    // Deep clone data to prevent listeners from modifying it for other listeners
+                    const eventDataCopy = JSON.parse(JSON.stringify(eventData));
+                    
+                    // Execute the callback
+                    callback.call(options.context, eventDataCopy);
+                    
+                    // Track 'once' listeners to remove later
+                    if (options && options.once) {
+                        onceListeners.push(subscription);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    console.error(`EventManager: Error in event listener ${index} for '${eventName}':`, error);
+                    console.error(`EventManager: Error details:`, error.message);
+                    if (error.stack) {
+                        console.error(`EventManager: Stack trace:`, error.stack);
+                    }
                 }
             });
+            
+            if (errorCount > 0 && debugMode) {
+                console.warn(`EventManager: ${errorCount} errors occurred while processing event '${eventName}'`);
+            }
+            
+            // Remove 'once' listeners
+            if (onceListeners.length > 0) {
+                try {
+                    onceListeners.forEach(onceListener => {
+                        const index = eventListeners.indexOf(onceListener);
+                        if (index !== -1) {
+                            eventListeners.splice(index, 1);
+                        }
+                    });
+                } catch (cleanupError) {
+                    console.error(`EventManager: Error cleaning up once listeners:`, cleanupError);
+                }
+            }
+            
+            return true;
+        } catch (criticalError) {
+            console.error(`EventManager: Critical error in publish method:`, criticalError);
+            if (criticalError.stack) {
+                console.error(`EventManager: Stack trace:`, criticalError.stack);
+            }
+            return false;
         }
-        
-        return true;
     };
     
     /**

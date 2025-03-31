@@ -293,76 +293,122 @@ const StatblockModule = (function() {
      * Load beasts from database
      */
     const loadBeasts = function() {
-        // Prevent multiple simultaneous loads
-        if (isLoadingBeasts) {
-            console.log('Already loading beasts, skipping duplicate call...');
-            return;
-        }
-        
-        isLoadingBeasts = true;
-        console.log('Loading beasts from database...');
-        showLoading();
-        
-        BeastStore.getAllBeasts().then(beasts => {
-            console.log(`Loaded ${beasts ? beasts.length : 0} beasts from database`);
-            beastList = beasts || [];
-            
-            if (beastList.length > 0) {
-                console.log('Sample beast data:', beastList[0]);
+        try {
+            // Prevent multiple simultaneous loads
+            if (isLoadingBeasts) {
+                console.log('StatblockModule: Already loading beasts, skipping duplicate call...');
+                return;
             }
             
-            // Sort by CR (highest to lowest) by default
-            beastList.sort((a, b) => {
-                const crA = parseFloat(a.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
-                const crB = parseFloat(b.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
-                return crB - crA;
-            });
+            isLoadingBeasts = true;
+            console.log('StatblockModule: Loading beasts from database...');
+            showLoading();
             
-            // Apply initial filters
-            console.log('Applying filters...');
-            try {
-                // Check if FiltersComponent exists
-                const filters = typeof FiltersComponent !== 'undefined' ? 
-                    FiltersComponent.getFilters() : null;
-                applyFilters(filters);
-                console.log(`After filtering: ${filteredList.length} beasts`);
-            } catch (filterError) {
-                console.error('Error applying filters:', filterError);
-                filteredList = [...beastList]; // Use all beasts if filters fail
+            if (typeof BeastStore === 'undefined') {
+                console.error('StatblockModule: BeastStore is not defined');
+                showEmptyState('Error: BeastStore is not available. Please reload the page.');
+                hideLoading();
+                isLoadingBeasts = false;
+                return;
             }
             
-            // Update favorites list
-            try {
-                updateFavoritesList();
-            } catch (error) {
-                console.error('Error updating favorites list:', error);
-            }
-            
-            // Update recently viewed list if we have items
-            if (recentlyViewedBeasts.length > 0) {
+            BeastStore.getAllBeasts().then(beasts => {
                 try {
-                    updateRecentlyViewedList();
-                } catch (error) {
-                    console.error('Error updating recently viewed list:', error);
+                    console.log(`StatblockModule: Loaded ${beasts ? beasts.length : 0} beasts from database`);
+                    beastList = beasts || [];
+                    
+                    if (beastList.length === 0) {
+                        console.warn('StatblockModule: No beasts loaded from database');
+                        showEmptyState('No beasts found in the database. Try importing beast data.');
+                        hideLoading();
+                        isLoadingBeasts = false;
+                        return;
+                    }
+                    
+                    if (beastList.length > 0) {
+                        console.log('StatblockModule: Sample beast data:', beastList[0]);
+                    }
+                    
+                    // Sort by CR (highest to lowest) by default
+                    try {
+                        beastList.sort((a, b) => {
+                            try {
+                                const crA = parseFloat(a.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+                                const crB = parseFloat(b.cr.replace('1/8', '0.125').replace('1/4', '0.25').replace('1/2', '0.5'));
+                                return crB - crA;
+                            } catch (sortError) {
+                                console.error('StatblockModule: Error sorting beast items:', sortError);
+                                return 0; // Keep order unchanged if error
+                            }
+                        });
+                    } catch (sortingError) {
+                        console.error('StatblockModule: Error during beast list sorting:', sortingError);
+                    }
+                    
+                    // Apply initial filters
+                    console.log('StatblockModule: Applying filters...');
+                    try {
+                        // Check if FiltersComponent exists
+                        const filters = typeof FiltersComponent !== 'undefined' ? 
+                            FiltersComponent.getFilters() : null;
+                        applyFilters(filters);
+                        console.log(`StatblockModule: After filtering: ${filteredList.length} beasts`);
+                    } catch (filterError) {
+                        console.error('StatblockModule: Error applying filters:', filterError);
+                        filteredList = [...beastList]; // Use all beasts if filters fail
+                    }
+                    
+                    // Update favorites list
+                    try {
+                        updateFavoritesList();
+                    } catch (error) {
+                        console.error('StatblockModule: Error updating favorites list:', error);
+                    }
+                    
+                    // Update recently viewed list if we have items
+                    if (recentlyViewedBeasts.length > 0) {
+                        try {
+                            updateRecentlyViewedList();
+                        } catch (error) {
+                            console.error('StatblockModule: Error updating recently viewed list:', error);
+                        }
+                    }
+                    
+                    // Render the beast list
+                    try {
+                        console.log('StatblockModule: Rendering beast list...');
+                        renderBeastList();
+                        console.log('StatblockModule: Beast list rendered successfully');
+                    } catch (renderError) {
+                        console.error('StatblockModule: Error rendering beast list:', renderError);
+                        showEmptyState('Error rendering beast list. See console for details.');
+                    }
+                    
+                    hideLoading();
+                    // Reset loading flag
+                    isLoadingBeasts = false;
+                } catch (processingError) {
+                    console.error('StatblockModule: Error processing beast data:', processingError);
+                    showEmptyState('Error processing beast data. Please check console for details.');
+                    hideLoading();
+                    isLoadingBeasts = false;
                 }
+            }).catch(error => {
+                console.error('StatblockModule: Error loading beasts:', error);
+                showEmptyState('Error loading beasts. Please try reloading the page.');
+                hideLoading();
+                isLoadingBeasts = false;
+            });
+        } catch (criticalError) {
+            console.error('StatblockModule: Critical error in loadBeasts:', criticalError);
+            try {
+                showEmptyState('A critical error occurred. Please reload the page.');
+                hideLoading();
+            } catch (e) {
+                console.error('StatblockModule: Failed to show error state:', e);
             }
-            
-            // Render the beast list
-            console.log('Rendering beast list...');
-            renderBeastList();
-            
-            hideLoading();
-            
-            // We no longer publish DATA_LOAD_COMPLETE to avoid infinite loops
-            
-            // Reset loading flag
             isLoadingBeasts = false;
-        }).catch(error => {
-            console.error('Error loading beasts:', error);
-            showEmptyState('Error loading beasts. Please try reloading the page.');
-            hideLoading();
-            isLoadingBeasts = false;
-        });
+        }
     };
     
     /**
@@ -981,40 +1027,73 @@ const StatblockModule = (function() {
      * @param {string} beastId - The ID of the beast to select
      */
     const selectBeast = function(beastId) {
-        // Don't reselect the same beast
-        if (beastId === selectedBeastId) return;
-        
-        // Find the beast in the list
-        const beast = beastList.find(beast => beast.id === beastId);
-        if (!beast) return;
-        
-        // Update selection history
-        if (selectionHistory.length > 0) {
-            // Truncate history if navigating backward then selecting a new beast
-            if (historyPosition < selectionHistory.length - 1) {
-                selectionHistory = selectionHistory.slice(0, historyPosition + 1);
+        try {
+            console.log('StatblockModule: Selecting beast with ID:', beastId);
+            
+            // Don't reselect the same beast
+            if (beastId === selectedBeastId) {
+                console.log('StatblockModule: Beast already selected, skipping');
+                return;
             }
             
-            // Add to history if different from last selection
-            if (selectionHistory[selectionHistory.length - 1] !== beastId) {
-                // Keep history at max length
-                if (selectionHistory.length >= MAX_HISTORY) {
-                    selectionHistory.shift();
-                }
-                selectionHistory.push(beastId);
-                historyPosition = selectionHistory.length - 1;
+            // Find the beast in the list
+            const beast = beastList.find(beast => beast.id === beastId);
+            if (!beast) {
+                console.error('StatblockModule: Cannot find beast with ID:', beastId);
+                return;
             }
-        } else {
-            // First item in history
-            selectionHistory.push(beastId);
-            historyPosition = 0;
+            
+            console.log('StatblockModule: Found beast:', beast.name);
+            
+            // Update selection history
+            try {
+                if (selectionHistory.length > 0) {
+                    // Truncate history if navigating backward then selecting a new beast
+                    if (historyPosition < selectionHistory.length - 1) {
+                        selectionHistory = selectionHistory.slice(0, historyPosition + 1);
+                    }
+                    
+                    // Add to history if different from last selection
+                    if (selectionHistory[selectionHistory.length - 1] !== beastId) {
+                        // Keep history at max length
+                        if (selectionHistory.length >= MAX_HISTORY) {
+                            selectionHistory.shift();
+                        }
+                        selectionHistory.push(beastId);
+                        historyPosition = selectionHistory.length - 1;
+                    }
+                } else {
+                    // First item in history
+                    selectionHistory.push(beastId);
+                    historyPosition = 0;
+                }
+            } catch (historyError) {
+                console.error('StatblockModule: Error updating selection history:', historyError);
+                // Continue with selection even if history fails
+            }
+            
+            try {
+                // Perform the actual selection
+                console.log('StatblockModule: Performing beast selection');
+                selectBeastWithoutHistory(beastId);
+            } catch (selectionError) {
+                console.error('StatblockModule: Error in selectBeastWithoutHistory:', selectionError);
+                throw selectionError; // Re-throw to outer handler
+            }
+            
+            try {
+                // Add to recently viewed
+                console.log('StatblockModule: Adding beast to recently viewed');
+                addToRecentlyViewed(beast);
+            } catch (recentError) {
+                console.error('StatblockModule: Error adding to recently viewed:', recentError);
+                // Continue even if recently viewed fails
+            }
+            
+            console.log('StatblockModule: Beast selection completed successfully');
+        } catch (error) {
+            console.error('StatblockModule: Critical error in selectBeast:', error);
         }
-        
-        // Perform the actual selection
-        selectBeastWithoutHistory(beastId);
-        
-        // Add to recently viewed
-        addToRecentlyViewed(beast);
     };
     
     /**
@@ -1022,29 +1101,79 @@ const StatblockModule = (function() {
      * @param {string} beastId - The ID of the beast to select
      */
     const selectBeastWithoutHistory = function(beastId) {
-        // Deselect currently selected beast
-        const currentlySelected = beastListElement.querySelector('.beast-item.selected');
-        if (currentlySelected) {
-            currentlySelected.classList.remove('selected');
-        }
-        
-        // Select new beast
-        const beastItem = beastListElement.querySelector(`.beast-item[data-id="${beastId}"]`);
-        if (beastItem) {
-            beastItem.classList.add('selected');
-        }
-        
-        // Update selected beast ID
-        selectedBeastId = beastId;
-        
-        // Update URL hash
-        window.location.hash = `beast=${beastId}`;
-        
-        // Find the beast in the list
-        const beast = beastList.find(beast => beast.id === beastId);
-        if (beast) {
-            // Publish beast selected event
-            EventManager.publish(EventManager.EVENTS.BEAST_SELECTED, beast);
+        try {
+            console.log('StatblockModule: Selecting beast without history update:', beastId);
+            
+            // Check if beastListElement exists
+            if (!beastListElement) {
+                console.error('StatblockModule: beastListElement is not defined');
+                return;
+            }
+            
+            // Deselect currently selected beast
+            try {
+                const currentlySelected = beastListElement.querySelector('.beast-item.selected');
+                if (currentlySelected) {
+                    currentlySelected.classList.remove('selected');
+                }
+            } catch (deselectError) {
+                console.error('StatblockModule: Error deselecting current beast:', deselectError);
+                // Continue even if deselection fails
+            }
+            
+            // Select new beast
+            try {
+                const beastItem = beastListElement.querySelector(`.beast-item[data-id="${beastId}"]`);
+                if (beastItem) {
+                    beastItem.classList.add('selected');
+                    console.log('StatblockModule: Added selected class to beast item');
+                } else {
+                    console.warn(`StatblockModule: Could not find beast item with ID: ${beastId}`);
+                }
+            } catch (selectError) {
+                console.error('StatblockModule: Error selecting beast item:', selectError);
+                // Continue even if selection UI fails
+            }
+            
+            // Update selected beast ID
+            selectedBeastId = beastId;
+            
+            // Update URL hash
+            try {
+                window.location.hash = `beast=${beastId}`;
+            } catch (hashError) {
+                console.error('StatblockModule: Error updating URL hash:', hashError);
+                // Continue even if hash update fails
+            }
+            
+            // Find the beast in the list
+            const beast = beastList.find(beast => beast.id === beastId);
+            if (!beast) {
+                console.error(`StatblockModule: Could not find beast with ID ${beastId} in beast list`);
+                return;
+            }
+            
+            console.log('StatblockModule: Found beast for publishing:', beast.name);
+            
+            // Create a clean copy of the beast to avoid any reference issues
+            try {
+                const beastCopy = JSON.parse(JSON.stringify(beast));
+                console.log('StatblockModule: Publishing BEAST_SELECTED event with beast data');
+                
+                // Check if EventManager exists
+                if (typeof EventManager === 'undefined') {
+                    console.error('StatblockModule: EventManager is not defined');
+                    return;
+                }
+                
+                // Publish beast selected event
+                EventManager.publish(EventManager.EVENTS.BEAST_SELECTED, beastCopy);
+                console.log('StatblockModule: BEAST_SELECTED event published successfully');
+            } catch (publishError) {
+                console.error('StatblockModule: Error publishing beast selected event:', publishError);
+            }
+        } catch (error) {
+            console.error('StatblockModule: Critical error in selectBeastWithoutHistory:', error);
         }
     };
     

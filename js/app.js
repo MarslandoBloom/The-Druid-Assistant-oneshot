@@ -18,46 +18,104 @@ const DruidAssistant = (function() {
     
     // Initialize the application
     const init = async () => {
-        console.log(`Initializing Druid's Assistant v${APP_VERSION}`);
-        
-        // Check browser compatibility
-        if (!checkBrowserSupport()) {
-            showError('Your browser does not support required features. Please use a modern browser like Chrome, Firefox, or Edge.');
-            return;
-        }
-        
         try {
-            // Initialize database
-            await Database.init();
+            console.log(`Initializing Druid's Assistant v${APP_VERSION}`);
             
-            // Verify database integrity
-            const integrityCheck = await Database.verifyIntegrity();
-            if (!integrityCheck.valid) {
-                showError(`Database integrity check failed: ${integrityCheck.reason}`);
-                console.error('Database integrity check failed:', integrityCheck.reason);
+            // Check browser compatibility
+            if (!checkBrowserSupport()) {
+                showError('Your browser does not support required features. Please use a modern browser like Chrome, Firefox, or Edge.');
+                return;
             }
             
-            // Cache frequently used DOM elements
-            cacheElements();
+            // First, cache frequently used DOM elements (this should be done early)
+            try {
+                console.log('Caching DOM elements...');
+                cacheElements();
+                console.log('DOM elements cached successfully');
+            } catch (elemError) {
+                console.error('Error caching DOM elements:', elemError);
+                showError('Error initializing UI components. Some features may not work correctly.');
+                // Continue initialization despite this error
+            }
             
-            // Set up event listeners
-            setupEventListeners();
+            // Set up basic event listeners before database operations
+            try {
+                console.log('Setting up event listeners...');
+                setupEventListeners();
+                console.log('Event listeners set up successfully');
+            } catch (eventError) {
+                console.error('Error setting up event listeners:', eventError);
+                showError('Error setting up event system. Some features may not work correctly.');
+                // Continue initialization despite this error
+            }
             
-            // Initialize data management buttons
-            initDataControls();
+            // Initialize the database
+            try {
+                console.log('Initializing database...');
+                if (typeof Database === 'undefined') {
+                    throw new Error('Database module is not defined');
+                }
+                await Database.init();
+                console.log('Database initialized successfully');
+                
+                // Verify database integrity
+                const integrityCheck = await Database.verifyIntegrity();
+                if (!integrityCheck.valid) {
+                    showError(`Database integrity check failed: ${integrityCheck.reason}`);
+                    console.error('Database integrity check failed:', integrityCheck.reason);
+                } else {
+                    console.log('Database integrity check passed');
+                }
+                
+                // Announce database readiness event explicitly
+                EventManager.publish('database:ready', { status: 'connected' });
+                console.log('Published database:ready event');
+            } catch (dbError) {
+                console.error('Critical database initialization error:', dbError);
+                showError('Error initializing database. Please refresh the page or check console for details.');
+                // We'll continue with UI initialization, but some features won't work
+            }
             
-            // Check database state without loading sample data
-            await checkDatabaseState();
+            // Initialize UI-related components that don't depend on data
+            try {
+                console.log('Initializing data management controls...');
+                initDataControls();
+                console.log('Data management controls initialized');
+            } catch (controlsError) {
+                console.error('Error initializing data controls:', controlsError);
+                // Continue initialization despite this error
+            }
+            
+            // Check database state only if database initialized successfully
+            try {
+                if (typeof Database !== 'undefined' && Database.isConnected()) {
+                    console.log('Checking database state...');
+                    await checkDatabaseState();
+                    console.log('Database state checked successfully');
+                } else {
+                    console.warn('Skipping database state check due to database initialization failure');
+                    showNotification('Database is not available. Please reload the page.', 'warning');
+                }
+            } catch (stateError) {
+                console.error('Error checking database state:', stateError);
+                // Continue initialization despite this error
+            }
             
             // Mark as initialized
             state.initialized = true;
             
             // Publish initialization event
-            EventManager.publish(EventManager.EVENTS.APP_INITIALIZED, { version: APP_VERSION });
-            
-            console.log('Initialization complete');
+            try {
+                console.log('Publishing APP_INITIALIZED event...');
+                EventManager.publish(EventManager.EVENTS.APP_INITIALIZED, { version: APP_VERSION });
+                console.log('Initialization complete');
+            } catch (publishError) {
+                console.error('Error publishing initialization event:', publishError);
+                // Initialization is still considered complete
+            }
         } catch (error) {
-            console.error('Initialization error:', error);
+            console.error('Critical initialization error:', error);
+            console.error('Stack trace:', error.stack);
             showError('Error initializing application. Please refresh the page or try again later.');
         }
     };

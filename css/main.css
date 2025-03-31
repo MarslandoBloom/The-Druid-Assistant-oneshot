@@ -287,6 +287,25 @@ header h1 {
     color: var(--text-light);
 }
 
+.statblock-error {
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    border: 2px solid var(--error-color);
+    border-radius: var(--border-radius);
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--error-color);
+    text-align: center;
+}
+
+.statblock-error h3 {
+    margin-bottom: var(--spacing-sm);
+    color: var(--error-color);
+}
+
+.statblock-error p {
+    margin: var(--spacing-xs) 0;
+}
+
 /* Action buttons */
 .action-buttons {
     display: flex;
