@@ -14,11 +14,7 @@ const StatblockModule = (function() {
     let virtualListContainer;
     let virtualListContent;
     let favoritesListElement;
-    let selectionHistory = [];
-    let historyPosition = -1;
-    let recentlyViewedBeasts = [];
-    const MAX_RECENT_BEASTS = 5;
-    const MAX_HISTORY = 20;
+    // History-related variables removed
     
     // Virtual list settings
     const ITEM_HEIGHT = 44; // Height of each beast item in pixels
@@ -61,17 +57,12 @@ const StatblockModule = (function() {
             loadBeasts();
         }
         
-        // Restore selected beast from URL hash if present
-        restoreSelectedBeastFromHash();
-        
-        // Set up window events
-        window.addEventListener('hashchange', handleHashChange);
+        // URL hash navigation removed
         
         // Setup keyboard shortcuts
         setupKeyboardShortcuts();
         
-        // Load recently viewed beasts
-        loadRecentlyViewedBeasts();
+        // Recently viewed beasts functionality removed
         
         console.log('Statblock module initialized');
     };
@@ -111,27 +102,7 @@ const StatblockModule = (function() {
                     navigateBeastList('last');
                     event.preventDefault();
                     break;
-                case 'Backspace':
-                    // Go back in history
-                    if (event.altKey && historyPosition > 0) {
-                        navigateHistory(-1);
-                        event.preventDefault();
-                    }
-                    break;
-                case 'ArrowLeft':
-                    // Go back in history with Alt+Left
-                    if (event.altKey && historyPosition > 0) {
-                        navigateHistory(-1);
-                        event.preventDefault();
-                    }
-                    break;
-                case 'ArrowRight':
-                    // Go forward in history with Alt+Right
-                    if (event.altKey && historyPosition < selectionHistory.length - 1) {
-                        navigateHistory(1);
-                        event.preventDefault();
-                    }
-                    break;
+                // History navigation keyboard shortcuts removed
                 case 'f':
                     // Toggle favorite with Alt+F
                     if (event.altKey && selectedBeastId) {
@@ -192,22 +163,7 @@ const StatblockModule = (function() {
         scrollToSelectedBeast();
     };
     
-    /**
-     * Navigate through selection history
-     * @param {number} delta - Direction to move in history (-1 for back, 1 for forward)
-     */
-    const navigateHistory = function(delta) {
-        if (selectionHistory.length === 0) return;
-        
-        historyPosition += delta;
-        historyPosition = Math.max(0, Math.min(selectionHistory.length - 1, historyPosition));
-        
-        const beastId = selectionHistory[historyPosition];
-        if (beastId) {
-            // Select without adding to history again
-            selectBeastWithoutHistory(beastId);
-        }
-    };
+    // History navigation function removed
     
     /**
      * Create loading indicator
@@ -365,14 +321,7 @@ const StatblockModule = (function() {
                         console.error('StatblockModule: Error updating favorites list:', error);
                     }
                     
-                    // Update recently viewed list if we have items
-                    if (recentlyViewedBeasts.length > 0) {
-                        try {
-                            updateRecentlyViewedList();
-                        } catch (error) {
-                            console.error('StatblockModule: Error updating recently viewed list:', error);
-                        }
-                    }
+                    // Recently viewed functionality removed
                     
                     // Render the beast list
                     try {
@@ -1045,32 +994,7 @@ const StatblockModule = (function() {
             
             console.log('StatblockModule: Found beast:', beast.name);
             
-            // Update selection history
-            try {
-                if (selectionHistory.length > 0) {
-                    // Truncate history if navigating backward then selecting a new beast
-                    if (historyPosition < selectionHistory.length - 1) {
-                        selectionHistory = selectionHistory.slice(0, historyPosition + 1);
-                    }
-                    
-                    // Add to history if different from last selection
-                    if (selectionHistory[selectionHistory.length - 1] !== beastId) {
-                        // Keep history at max length
-                        if (selectionHistory.length >= MAX_HISTORY) {
-                            selectionHistory.shift();
-                        }
-                        selectionHistory.push(beastId);
-                        historyPosition = selectionHistory.length - 1;
-                    }
-                } else {
-                    // First item in history
-                    selectionHistory.push(beastId);
-                    historyPosition = 0;
-                }
-            } catch (historyError) {
-                console.error('StatblockModule: Error updating selection history:', historyError);
-                // Continue with selection even if history fails
-            }
+            // Selection history tracking removed
             
             try {
                 // Perform the actual selection
@@ -1081,14 +1005,7 @@ const StatblockModule = (function() {
                 throw selectionError; // Re-throw to outer handler
             }
             
-            try {
-                // Add to recently viewed
-                console.log('StatblockModule: Adding beast to recently viewed');
-                addToRecentlyViewed(beast);
-            } catch (recentError) {
-                console.error('StatblockModule: Error adding to recently viewed:', recentError);
-                // Continue even if recently viewed fails
-            }
+            // Recently viewed functionality removed
             
             console.log('StatblockModule: Beast selection completed successfully');
         } catch (error) {
@@ -1138,13 +1055,7 @@ const StatblockModule = (function() {
             // Update selected beast ID
             selectedBeastId = beastId;
             
-            // Update URL hash
-            try {
-                window.location.hash = `beast=${beastId}`;
-            } catch (hashError) {
-                console.error('StatblockModule: Error updating URL hash:', hashError);
-                // Continue even if hash update fails
-            }
+            // URL hash update removed
             
             // Find the beast in the list
             const beast = beastList.find(beast => beast.id === beastId);
@@ -1177,134 +1088,7 @@ const StatblockModule = (function() {
         }
     };
     
-    /**
-     * Add a beast to recently viewed list
-     * @param {Object} beast - The beast to add
-     */
-    const addToRecentlyViewed = function(beast) {
-        // Remove if already in list
-        recentlyViewedBeasts = recentlyViewedBeasts.filter(b => b.id !== beast.id);
-        
-        // Add to front of list
-        recentlyViewedBeasts.unshift(beast);
-        
-        // Keep list at max length
-        if (recentlyViewedBeasts.length > MAX_RECENT_BEASTS) {
-            recentlyViewedBeasts.pop();
-        }
-        
-        // Save to localStorage
-        saveRecentlyViewedBeasts();
-        
-        // Update the UI
-        updateRecentlyViewedList();
-    };
-    
-    /**
-     * Save recently viewed beasts to localStorage
-     */
-    const saveRecentlyViewedBeasts = function() {
-        try {
-            // Only save IDs to keep storage small
-            const recentIds = recentlyViewedBeasts.map(beast => beast.id);
-            localStorage.setItem('recentlyViewedBeasts', JSON.stringify(recentIds));
-        } catch (error) {
-            console.error('Error saving recently viewed beasts:', error);
-        }
-    };
-    
-    /**
-     * Load recently viewed beasts from localStorage
-     */
-    const loadRecentlyViewedBeasts = function() {
-        try {
-            const recentIds = JSON.parse(localStorage.getItem('recentlyViewedBeasts') || '[]');
-            
-            // We'll restore the full beast objects when beasts are loaded
-            if (recentIds.length > 0) {
-                // Store IDs until beasts are loaded
-                recentlyViewedBeasts = recentIds.map(id => ({ id }));
-                
-                // If beasts are already loaded, populate the full objects
-                if (beastList.length > 0) {
-                    updateRecentlyViewedList();
-                }
-            }
-        } catch (error) {
-            console.error('Error loading recently viewed beasts:', error);
-            recentlyViewedBeasts = [];
-        }
-    };
-    
-    /**
-     * Update the recently viewed list with full beast objects
-     */
-    const updateRecentlyViewedList = function() {
-        // Replace ID-only objects with full beast objects
-        recentlyViewedBeasts = recentlyViewedBeasts
-            .map(recentBeast => {
-                if (recentBeast.name) return recentBeast; // Already have full object
-                const fullBeast = beastList.find(b => b.id === recentBeast.id);
-                return fullBeast || null; // Return full beast or null if not found
-            })
-            .filter(beast => beast !== null); // Remove any beasts that weren't found
-        
-        // Create or update the recently viewed container
-        let recentContainer = document.querySelector('.recently-viewed-container');
-        
-        if (!recentContainer && recentlyViewedBeasts.length > 0) {
-            // Create container if it doesn't exist
-            recentContainer = document.createElement('div');
-            recentContainer.className = 'recently-viewed-container';
-            
-            const heading = document.createElement('h3');
-            heading.textContent = 'Recently Viewed';
-            recentContainer.appendChild(heading);
-            
-            const recentList = document.createElement('div');
-            recentList.className = 'recently-viewed-list';
-            recentContainer.appendChild(recentList);
-            
-            // Add before favorites container
-            const favoritesContainer = document.querySelector('.favorites-container');
-            if (favoritesContainer) {
-                favoritesContainer.parentNode.insertBefore(recentContainer, favoritesContainer);
-            } else {
-                // Fallback: add to main content
-                const mainContent = document.querySelector('.main-content');
-                if (mainContent) {
-                    mainContent.appendChild(recentContainer);
-                }
-            }
-        } else if (recentContainer) {
-            // Update existing container
-            const recentList = recentContainer.querySelector('.recently-viewed-list');
-            if (recentList) {
-                recentList.innerHTML = '';
-                
-                // Add beasts to the list
-                recentlyViewedBeasts.forEach(beast => {
-                    const recentItem = document.createElement('div');
-                    recentItem.className = 'recent-item';
-                    recentItem.textContent = beast.name;
-                    
-                    // Add click handler
-                    recentItem.addEventListener('click', function() {
-                        selectBeast(beast.id);
-                    });
-                    
-                    recentList.appendChild(recentItem);
-                });
-                
-                // Show or hide based on content
-                if (recentlyViewedBeasts.length === 0) {
-                    recentContainer.style.display = 'none';
-                } else {
-                    recentContainer.style.display = 'block';
-                }
-            }
-        }
-    };
+    // Recently viewed functions removed
     
     /**
      * Scroll to the selected beast in the list
@@ -1448,40 +1232,7 @@ const StatblockModule = (function() {
         }
     };
     
-    /**
-     * Restore selected beast from URL hash
-     */
-    const restoreSelectedBeastFromHash = function() {
-        const hash = window.location.hash;
-        if (!hash) return;
-        
-        const match = hash.match(/beast=([^&]+)/);
-        if (match && match[1]) {
-            const beastId = match[1];
-            
-            // Wait for beasts to load
-            if (beastList.length === 0) {
-                const checkInterval = setInterval(() => {
-                    if (beastList.length > 0) {
-                        clearInterval(checkInterval);
-                        selectBeast(beastId);
-                    }
-                }, 100);
-                
-                // Clear interval after 5 seconds to prevent infinite checking
-                setTimeout(() => clearInterval(checkInterval), 5000);
-            } else {
-                selectBeast(beastId);
-            }
-        }
-    };
-    
-    /**
-     * Handle hash change event
-     */
-    const handleHashChange = function() {
-        restoreSelectedBeastFromHash();
-    };
+    // URL hash functions removed
     
     /**
      * Get a beast by ID

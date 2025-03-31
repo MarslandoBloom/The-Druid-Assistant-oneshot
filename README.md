@@ -147,3 +147,16 @@ This application helps Druid players with:
 - Added comprehensive test files to demonstrate functionality
 - Prepared component for direct integration into main application
 - Placed all new code in tests folder for isolated testing before integration
+
+### Stage 7: Bug Fix - Statblock Selection Issue (April 1, 2025)
+- Fixed critical bug causing statblock display to go blank when selecting beasts
+- Removed history/recently viewed feature which was causing double selection events
+- Removed URL hash navigation system that was triggering duplicate beast selections
+- Simplified beast selection code to prevent race conditions
+- Eliminated problematic history tracking code that was triggering multiple selection attempts
+- Removed keyboard shortcut handlers for history navigation (Alt+Left/Right/Backspace)
+- Eliminated localStorage persistence for recently viewed beasts
+- Removed URL hash update and hashchange event listener
+- Removed UI components for displaying recently viewed beasts
+- Streamlined beast selection process to be more reliable
+- Enhanced codebase maintainability by removing unnecessary features
