@@ -31,13 +31,13 @@ const StatblockRenderer = (function() {
             // Add divider
             appendDivider(statblock);
             
-            // Add attributes (AC, HP, Speed)
-            appendAttributes(statblock, beast);
+            // Add top row attributes (AC, HP, Speed, CR, PB) in a single row
+            appendTopRowAttributes(statblock, beast);
             
             // Add ability scores
             appendAbilityScores(statblock, beast);
             
-            // Add details (skills, senses, languages, etc.)
+            // Add details (skills, senses, languages, etc.) - but not CR or PB which are now in top row
             appendDetails(statblock, beast);
             
             // Add divider
@@ -53,20 +53,11 @@ const StatblockRenderer = (function() {
                 appendActions(statblock, beast);
             }
             
-            // Add reactions (if any)
-            if (beast.reactions && beast.reactions.length > 0) {
-                appendReactions(statblock, beast);
-            }
-            
-            // Add legendary actions (if any)
-            if (beast.legendary && beast.legendary.length > 0) {
-                appendLegendaryActions(statblock, beast);
-            }
-            
-            // Add environment information (if present)
-            if (beast.environment) {
-                appendEnvironment(statblock, beast);
-            }
+            // IMPORTANT: We stop here - per examples and requirements, we don't display:
+            // - Reactions
+            // - Legendary actions
+            // - Environment information
+            // - Any background lore text that appears after the 'null' marker in the data
             
             console.log('StatblockRenderer: Statblock created successfully');
             return statblock;
@@ -134,42 +125,112 @@ const StatblockRenderer = (function() {
     };
     
     /**
-     * Append attributes (AC, HP, Speed) to the statblock
+     * Append top row attributes (AC, HP, Speed, CR, PB) to the statblock in a single row
      * @param {HTMLElement} statblock - The statblock element
      * @param {Object} beast - The beast data
      */
-    const appendAttributes = function(statblock, beast) {
-        const attributes = document.createElement('div');
-        attributes.className = 'statblock-attributes';
+    const appendTopRowAttributes = function(statblock, beast) {
+        const attributesRow = document.createElement('div');
+        attributesRow.className = 'statblock-top-attributes';
         
+        // Create container
+        const attributesText = document.createElement('p');
+        
+        // Format the attributes into a single line
         // Armor Class
-        const ac = document.createElement('p');
-        const acLabel = document.createElement('span');
-        acLabel.className = 'statblock-attributes-label';
-        acLabel.textContent = 'Armor Class ';
-        ac.appendChild(acLabel);
-        ac.appendChild(document.createTextNode(beast.ac));
+        const acSpan = document.createElement('span');
+        acSpan.className = 'statblock-attributes-label';
+        acSpan.textContent = 'Armor Class ';
+        attributesText.appendChild(acSpan);
+        attributesText.appendChild(document.createTextNode(beast.ac || '10'));
+        
+        // Separator
+        attributesText.appendChild(document.createTextNode(' • '));
         
         // Hit Points
-        const hp = document.createElement('p');
-        const hpLabel = document.createElement('span');
-        hpLabel.className = 'statblock-attributes-label';
-        hpLabel.textContent = 'Hit Points ';
-        hp.appendChild(hpLabel);
-        hp.appendChild(document.createTextNode(beast.hp));
+        const hpSpan = document.createElement('span');
+        hpSpan.className = 'statblock-attributes-label';
+        hpSpan.textContent = 'Hit Points ';
+        attributesText.appendChild(hpSpan);
+        attributesText.appendChild(document.createTextNode(beast.hp || '1'));
+        
+        // Separator
+        attributesText.appendChild(document.createTextNode(' • '));
         
         // Speed
-        const speed = document.createElement('p');
-        const speedLabel = document.createElement('span');
-        speedLabel.className = 'statblock-attributes-label';
-        speedLabel.textContent = 'Speed ';
-        speed.appendChild(speedLabel);
-        speed.appendChild(document.createTextNode(beast.speed));
+        const speedSpan = document.createElement('span');
+        speedSpan.className = 'statblock-attributes-label';
+        speedSpan.textContent = 'Speed ';
+        attributesText.appendChild(speedSpan);
+        attributesText.appendChild(document.createTextNode(beast.speed || '30 ft.'));
         
-        attributes.appendChild(ac);
-        attributes.appendChild(hp);
-        attributes.appendChild(speed);
-        statblock.appendChild(attributes);
+        // Separator
+        attributesText.appendChild(document.createTextNode(' • '));
+        
+        // Challenge Rating with XP
+        const crSpan = document.createElement('span');
+        crSpan.className = 'statblock-attributes-label';
+        crSpan.textContent = 'Challenge ';
+        attributesText.appendChild(crSpan);
+        
+        // Add CR and calculate XP
+        let xp = '0';
+        if (beast.cr) {
+            switch(beast.cr) {
+                case '0': xp = '0'; break;
+                case '1/8': xp = '25'; break;
+                case '1/4': xp = '50'; break;
+                case '1/2': xp = '100'; break;
+                case '1': xp = '200'; break;
+                case '2': xp = '450'; break;
+                case '3': xp = '700'; break;
+                case '4': xp = '1,100'; break;
+                case '5': xp = '1,800'; break;
+                case '6': xp = '2,300'; break;
+                case '7': xp = '2,900'; break;
+                case '8': xp = '3,900'; break;
+                case '9': xp = '5,000'; break;
+                case '10': xp = '5,900'; break;
+                case '11': xp = '7,200'; break;
+                case '12': xp = '8,400'; break;
+                case '13': xp = '10,000'; break;
+                case '14': xp = '11,500'; break;
+                case '15': xp = '13,000'; break;
+                case '16': xp = '15,000'; break;
+                case '17': xp = '18,000'; break;
+                case '18': xp = '20,000'; break;
+                case '19': xp = '22,000'; break;
+                case '20': xp = '25,000'; break;
+                case '21': xp = '33,000'; break;
+                case '22': xp = '41,000'; break;
+                case '23': xp = '50,000'; break;
+                case '24': xp = '62,000'; break;
+                case '25': xp = '75,000'; break;
+                case '26': xp = '90,000'; break;
+                case '27': xp = '105,000'; break;
+                case '28': xp = '120,000'; break;
+                case '29': xp = '135,000'; break;
+                case '30': xp = '155,000'; break;
+                default: xp = '0';
+            }
+        }
+        
+        attributesText.appendChild(document.createTextNode(`${beast.cr || '0'} (${xp} XP)`));
+        
+        // Separator before PB if it exists
+        if (beast.profBonus) {
+            attributesText.appendChild(document.createTextNode(' • '));
+            
+            // Proficiency Bonus
+            const pbSpan = document.createElement('span');
+            pbSpan.className = 'statblock-attributes-label';
+            pbSpan.textContent = 'PB ';
+            attributesText.appendChild(pbSpan);
+            attributesText.appendChild(document.createTextNode(beast.profBonus || '+2'));
+        }
+        
+        attributesRow.appendChild(attributesText);
+        statblock.appendChild(attributesRow);
     };
     
     /**
@@ -225,7 +286,8 @@ const StatblockRenderer = (function() {
     };
     
     /**
-     * Append details (skills, senses, languages, CR) to the statblock
+     * Append details (skills, senses, languages) to the statblock
+     * Note: CR and PB have been moved to the top attributes row
      * @param {HTMLElement} statblock - The statblock element
      * @param {Object} beast - The beast data
      */
@@ -240,7 +302,10 @@ const StatblockRenderer = (function() {
             skillsLabel.className = 'statblock-attributes-label';
             skillsLabel.textContent = 'Skills ';
             skills.appendChild(skillsLabel);
-            skills.appendChild(document.createTextNode(beast.skills));
+            
+            // Remove any asterisks or > characters from skills text
+            const cleanSkills = beast.skills.replace(/[\*>]/g, '');
+            skills.appendChild(document.createTextNode(cleanSkills));
             details.appendChild(skills);
         }
         
@@ -251,7 +316,10 @@ const StatblockRenderer = (function() {
             sensesLabel.className = 'statblock-attributes-label';
             sensesLabel.textContent = 'Senses ';
             senses.appendChild(sensesLabel);
-            senses.appendChild(document.createTextNode(beast.senses));
+            
+            // Remove any asterisks or > characters from senses text
+            const cleanSenses = beast.senses.replace(/[\*>]/g, '');
+            senses.appendChild(document.createTextNode(cleanSenses));
             details.appendChild(senses);
         }
         
@@ -261,28 +329,13 @@ const StatblockRenderer = (function() {
         languagesLabel.className = 'statblock-attributes-label';
         languagesLabel.textContent = 'Languages ';
         languages.appendChild(languagesLabel);
-        languages.appendChild(document.createTextNode(beast.languages || '—'));
+        
+        // Remove any asterisks or > characters from languages text
+        const cleanLanguages = (beast.languages || '—').replace(/[\*>]/g, '');
+        languages.appendChild(document.createTextNode(cleanLanguages));
         details.appendChild(languages);
         
-        // Challenge Rating
-        const challenge = document.createElement('p');
-        const challengeLabel = document.createElement('span');
-        challengeLabel.className = 'statblock-attributes-label';
-        challengeLabel.textContent = 'Challenge ';
-        challenge.appendChild(challengeLabel);
-        challenge.appendChild(document.createTextNode(beast.cr));
-        details.appendChild(challenge);
-        
-        // Proficiency Bonus (if present)
-        if (beast.profBonus) {
-            const profBonus = document.createElement('p');
-            const profBonusLabel = document.createElement('span');
-            profBonusLabel.className = 'statblock-attributes-label';
-            profBonusLabel.textContent = 'Proficiency Bonus ';
-            profBonus.appendChild(profBonusLabel);
-            profBonus.appendChild(document.createTextNode(beast.profBonus));
-            details.appendChild(profBonus);
-        }
+        // Note: Challenge Rating and Proficiency Bonus have been moved to top row
         
         statblock.appendChild(details);
     };
@@ -305,7 +358,10 @@ const StatblockRenderer = (function() {
             traitName.textContent = `${trait.name}. `;
             
             traitElement.appendChild(traitName);
-            traitElement.appendChild(document.createTextNode(trait.description));
+            
+            // Remove any asterisks or > characters from trait description
+            const cleanDescription = trait.description.replace(/[\*>]/g, '');
+            traitElement.appendChild(document.createTextNode(cleanDescription));
             
             traitsSection.appendChild(traitElement);
         });
@@ -324,7 +380,7 @@ const StatblockRenderer = (function() {
         
         const actionsTitle = document.createElement('h3');
         actionsTitle.className = 'statblock-section-title';
-        actionsTitle.textContent = 'Actions';
+        actionsTitle.textContent = 'ACTIONS';
         actionsSection.appendChild(actionsTitle);
         
         beast.actions.forEach(action => {
@@ -333,7 +389,10 @@ const StatblockRenderer = (function() {
             
             const actionName = document.createElement('span');
             actionName.className = 'action-name';
-            actionName.textContent = `${action.name}. `;
+            
+            // Clean the action name of any asterisks or > characters
+            const cleanName = action.name.replace(/[\*>]/g, '');
+            actionName.textContent = `${cleanName}. `;
             
             actionElement.appendChild(actionName);
             
@@ -347,82 +406,9 @@ const StatblockRenderer = (function() {
         statblock.appendChild(actionsSection);
     };
     
-    /**
-     * Append reactions to the statblock (if any)
-     * @param {HTMLElement} statblock - The statblock element
-     * @param {Object} beast - The beast data
-     */
-    const appendReactions = function(statblock, beast) {
-        const reactionsSection = document.createElement('div');
-        reactionsSection.className = 'statblock-reactions';
-        
-        const reactionsTitle = document.createElement('h3');
-        reactionsTitle.className = 'statblock-section-title';
-        reactionsTitle.textContent = 'Reactions';
-        reactionsSection.appendChild(reactionsTitle);
-        
-        beast.reactions.forEach(reaction => {
-            const reactionElement = document.createElement('div');
-            reactionElement.className = 'statblock-reaction';
-            
-            const reactionName = document.createElement('span');
-            reactionName.className = 'reaction-name';
-            reactionName.textContent = `${reaction.name}. `;
-            
-            reactionElement.appendChild(reactionName);
-            reactionElement.appendChild(document.createTextNode(reaction.description));
-            
-            reactionsSection.appendChild(reactionElement);
-        });
-        
-        statblock.appendChild(reactionsSection);
-    };
+    // appendReactions function removed - not needed as we don't display reactions
     
-    /**
-     * Append legendary actions to the statblock (if any)
-     * @param {HTMLElement} statblock - The statblock element
-     * @param {Object} beast - The beast data
-     */
-    const appendLegendaryActions = function(statblock, beast) {
-        const legendarySection = document.createElement('div');
-        legendarySection.className = 'statblock-legendary';
-        
-        const legendaryTitle = document.createElement('h3');
-        legendaryTitle.className = 'statblock-section-title';
-        legendaryTitle.textContent = 'Legendary Actions';
-        legendarySection.appendChild(legendaryTitle);
-        
-        // Add legendary actions description if available
-        if (beast.legendaryDescription) {
-            const description = document.createElement('p');
-            description.className = 'legendary-description';
-            description.textContent = beast.legendaryDescription;
-            legendarySection.appendChild(description);
-        } else {
-            // Default legendary actions description
-            const description = document.createElement('p');
-            description.className = 'legendary-description';
-            description.textContent = `${beast.name} can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. ${beast.name} regains spent legendary actions at the start of its turn.`;
-            legendarySection.appendChild(description);
-        }
-        
-        // Add each legendary action
-        beast.legendary.forEach(action => {
-            const actionElement = document.createElement('div');
-            actionElement.className = 'statblock-legendary-action';
-            
-            const actionName = document.createElement('span');
-            actionName.className = 'action-name';
-            actionName.textContent = `${action.name}. `;
-            
-            actionElement.appendChild(actionName);
-            actionElement.appendChild(document.createTextNode(action.description));
-            
-            legendarySection.appendChild(actionElement);
-        });
-        
-        statblock.appendChild(legendarySection);
-    };
+    // appendLegendaryActions function removed - not needed as we don't display legendary actions
     
     /**
      * Format action description with proper styling for attacks
@@ -433,10 +419,22 @@ const StatblockRenderer = (function() {
         const fragment = document.createDocumentFragment();
         
         try {
+            // First, check if the description contains the 'null' marker which indicates the end of the statblock
+            // and the beginning of background lore - we need to truncate the description at this point
+            let processedDescription = description;
+            if (description.includes('null')) {
+                // Truncate the description at the 'null' marker
+                processedDescription = description.split('null')[0].trim();
+                console.log('StatblockRenderer: Truncated action description at null marker');
+            }
+            
+            // Clean the description by removing asterisks and > characters
+            const cleanDescription = processedDescription.replace(/[\*>]/g, '');
+            
             // Check if this is an attack action
-            if (description.includes('Attack:')) {
+            if (cleanDescription.includes('Attack:')) {
                 // Split into attack type and the rest
-                const parts = description.split('Attack:');
+                const parts = cleanDescription.split('Attack:');
                 const attackType = parts[0] + 'Attack:';
                 const rest = parts[1];
                 
@@ -459,37 +457,23 @@ const StatblockRenderer = (function() {
                     fragment.appendChild(document.createTextNode(rest));
                 }
             } else {
-                // Just add the description as plain text
-                fragment.appendChild(document.createTextNode(description));
+                // Just add the cleaned description as plain text
+                fragment.appendChild(document.createTextNode(cleanDescription));
             }
         } catch (error) {
             console.error('StatblockRenderer: Error formatting action description:', error);
-            fragment.appendChild(document.createTextNode(description || 'Error formatting description'));
+            // If there's an error, just return the plain description without asterisks/> and truncated at 'null'
+            let errorText = description || 'Error formatting description';
+            if (errorText.includes('null')) {
+                errorText = errorText.split('null')[0].trim();
+            }
+            fragment.appendChild(document.createTextNode(errorText.replace(/[\*>]/g, '')));
         }
         
         return fragment;
     };
     
-    /**
-     * Append environment information to the statblock
-     * @param {HTMLElement} statblock - The statblock element
-     * @param {Object} beast - The beast data
-     */
-    const appendEnvironment = function(statblock, beast) {
-        const environmentSection = document.createElement('div');
-        environmentSection.className = 'statblock-environment';
-        
-        const environmentTitle = document.createElement('h3');
-        environmentTitle.className = 'statblock-section-title';
-        environmentTitle.textContent = 'Environment';
-        environmentSection.appendChild(environmentTitle);
-        
-        const environmentText = document.createElement('p');
-        environmentText.textContent = beast.environment;
-        environmentSection.appendChild(environmentText);
-        
-        statblock.appendChild(environmentSection);
-    };
+    // appendEnvironment function removed - not needed as we don't display environment information
     
     /**
      * Render a beast statblock in a container

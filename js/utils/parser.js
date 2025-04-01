@@ -72,7 +72,15 @@ const Parser = (function() {
                 
                 if (actionSection !== -1) {
                     const actionContent = contentBlock.substring(actionSection);
-                    const actionMatches = actionContent.matchAll(/>\*\*\*([^\.]+)\.\*\*\* ([^]*?)(?=>\*\*\*|$)/g);
+                    
+                    // Find actions but stop at '> null' marker
+                    const nullMarkerIndex = actionContent.indexOf('> null');
+                    const cleanActionContent = nullMarkerIndex !== -1 
+                        ? actionContent.substring(0, nullMarkerIndex) 
+                        : actionContent;
+                    
+                    // Process action content
+                    const actionMatches = cleanActionContent.matchAll(/>\*\*\*([^\.]+)\.\*\*\* ([^]*?)(?=>\*\*\*|$)/g);
                     
                     for (const actionMatch of actionMatches) {
                         actions.push({

@@ -4,9 +4,9 @@
 /* Base statblock container */
 .statblock {
     background-color: #fdf1dc;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #DDD;
+    border-radius: 0px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
     margin-bottom: 1rem;
     font-family: 'Noto Serif', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
@@ -18,7 +18,9 @@
 
 /* Statblock header */
 .statblock-header {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid #e69a28;
+    padding-bottom: 0.25rem;
 }
 
 .statblock-title {
@@ -27,6 +29,7 @@
     font-family: 'Calibri', 'Gill Sans', 'Gill Sans MT', sans-serif;
     margin: 0;
     color: #822000;
+    text-transform: uppercase;
 }
 
 .statblock-subtitle {
@@ -38,22 +41,11 @@
 
 /* Dividers */
 .statblock-divider {
-    height: 6px;
+    height: 4px;
     background: #e69a28;
-    border: 1px solid #000;
-    border-radius: 1px;
+    border: none;
     margin: 0.5rem 0;
     position: relative;
-}
-
-.statblock-divider::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 2px;
-    height: 2px;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.15);
 }
 
 /* Attributes section */
@@ -67,6 +59,7 @@
 
 .statblock-attributes-label {
     font-weight: bold;
+    font-style: italic;
 }
 
 /* Ability scores table */
@@ -75,6 +68,9 @@
     justify-content: space-between;
     margin: 0.7rem 0;
     text-align: center;
+    border-top: 1px solid #e69a28;
+    border-bottom: 1px solid #e69a28;
+    padding: 0.5rem 0;
 }
 
 .statblock-ability {
@@ -100,35 +96,43 @@
 /* Details section (skills, senses, etc.) */
 .statblock-details {
     margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
 }
 
 .statblock-details p {
     margin: 0.2rem 0;
+    line-height: 1.4;
 }
 
-/* Traits, Actions, Reactions, Legendary, Environment sections */
+/* Traits, Actions sections */
 .statblock-traits, 
-.statblock-actions, 
-.statblock-reactions, 
-.statblock-legendary, 
-.statblock-environment {
-    margin-top: 0.7rem;
+.statblock-actions {
+    margin-top: 0.5rem;
 }
 
 .statblock-section-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     font-family: 'Calibri', 'Gill Sans', 'Gill Sans MT', sans-serif;
-    border-bottom: 1px solid #472d20;
-    margin: 0.5rem 0;
+    border-bottom: 1px solid #e69a28;
+    margin: 0.5rem 0 0.25rem 0;
     color: #822000;
+    text-transform: uppercase;
+    padding-bottom: 0.1rem;
+    letter-spacing: 0.5px;
 }
 
 .trait-name, 
-.action-name, 
-.reaction-name {
+.action-name {
     font-weight: bold;
     font-style: italic;
+    color: #822000;
+}
+
+.statblock-trait, 
+.statblock-action {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
 }
 
 /* Print styles */
