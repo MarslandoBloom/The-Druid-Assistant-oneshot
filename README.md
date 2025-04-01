@@ -160,3 +160,14 @@ This application helps Druid players with:
 - Removed UI components for displaying recently viewed beasts
 - Streamlined beast selection process to be more reliable
 - Enhanced codebase maintainability by removing unnecessary features
+
+### Stage 8: Statblock Tab Improvements (April 2, 2025)
+- Removed environment filtering from the statblock tab to simplify the interface
+- Added collapsible filter menu to save screen space when needed
+- Implemented toggle button for filters with persistent state using localStorage
+- Added visual indicator to show when filters are collapsed or expanded
+- Updated FiltersComponent to handle collapsed state and persist user preference
+- Improved filter UI by adding a header section with toggle controls
+- Simplified beast filtering logic by removing environment-based filtering
+- Added transition effects for smooth filter collapse/expand animation
+- Fixed styling for improved visual consistency with rest of the application

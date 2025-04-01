@@ -7,8 +7,10 @@ const FiltersComponent = (function() {
     let crMinSelect;
     let crMaxSelect;
     let sizeCheckboxes;
-    let environmentCheckboxes;
     let resetButton;
+    let filterToggleButton;
+    let filterContent;
+    let filterHeader;
     
     // Default filters
     const defaultFilters = {
@@ -16,8 +18,7 @@ const FiltersComponent = (function() {
             min: 0,
             max: 6
         },
-        size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'],
-        environment: ['Forest', 'Grassland', 'Hill']
+        size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan']
     };
     
     // Current active filters
@@ -31,8 +32,10 @@ const FiltersComponent = (function() {
         crMinSelect = document.getElementById('cr-min');
         crMaxSelect = document.getElementById('cr-max');
         sizeCheckboxes = document.querySelectorAll('.filter-group input[type="checkbox"][value^="Tiny"], .filter-group input[type="checkbox"][value^="Small"], .filter-group input[type="checkbox"][value^="Medium"], .filter-group input[type="checkbox"][value^="Large"], .filter-group input[type="checkbox"][value^="Huge"], .filter-group input[type="checkbox"][value^="Gargantuan"]');
-        environmentCheckboxes = document.querySelectorAll('.filter-group input[type="checkbox"][value^="Forest"], .filter-group input[type="checkbox"][value^="Grassland"], .filter-group input[type="checkbox"][value^="Hill"]');
         resetButton = document.getElementById('reset-filters');
+        filterToggleButton = document.getElementById('toggle-filters');
+        filterContent = document.getElementById('filter-content');
+        filterHeader = document.querySelector('.filter-header');
         
         // Set up event listeners
         if (crMinSelect) {
@@ -47,13 +50,26 @@ const FiltersComponent = (function() {
             checkbox.addEventListener('change', handleSizeChange);
         });
         
-        environmentCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', handleEnvironmentChange);
-        });
-        
+
         if (resetButton) {
             resetButton.addEventListener('click', resetFilters);
         }
+        
+        // Set up filter toggle functionality
+        if (filterHeader) {
+            filterHeader.addEventListener('click', toggleFilters);
+        }
+        
+        if (filterToggleButton) {
+            filterToggleButton.addEventListener('click', function(event) {
+                // Prevent the event from bubbling up to the header
+                event.stopPropagation();
+                toggleFilters();
+            });
+        }
+        
+        // Load saved filter visibility state
+        loadFilterVisibilityState();
         
         // Load saved filters from localStorage
         loadSavedFilters();
@@ -106,11 +122,7 @@ const FiltersComponent = (function() {
             checkbox.checked = activeFilters.size.includes(checkbox.value);
         });
         
-        // Update environment checkboxes
-        environmentCheckboxes.forEach(checkbox => {
-            checkbox.checked = activeFilters.environment.includes(checkbox.value);
-        });
-        
+
         // Apply filters
         applyFilters();
     };
@@ -157,17 +169,64 @@ const FiltersComponent = (function() {
     };
     
     /**
-     * Handle environment checkbox change
+     * Toggle filters visibility
      */
-    const handleEnvironmentChange = function() {
-        // Update environment filters
-        activeFilters.environment = Array.from(environmentCheckboxes)
-            .filter(checkbox => checkbox.checked)
-            .map(checkbox => checkbox.value);
+    const toggleFilters = function(event) {
+        // If triggered by event and the click was on the button itself, prevent double toggle
+        if (event && event.target === filterToggleButton) {
+            return;
+        }
         
-        // Save and apply filters
-        saveFilters();
-        applyFilters();
+        if (filterContent) {
+            filterContent.classList.toggle('collapsed');
+            
+            // Update button icon
+            if (filterToggleButton) {
+                filterToggleButton.classList.toggle('collapsed');
+                const icon = filterToggleButton.querySelector('.toggle-icon');
+                if (icon) {
+                    icon.textContent = filterContent.classList.contains('collapsed') ? '+' : '−';
+                }
+            }
+            
+            // Save state to localStorage
+            saveFilterVisibilityState();
+        }
+    };
+    
+    /**
+     * Save filter visibility state to localStorage
+     */
+    const saveFilterVisibilityState = function() {
+        try {
+            const isCollapsed = filterContent && filterContent.classList.contains('collapsed');
+            localStorage.setItem('filtersCollapsed', isCollapsed ? 'true' : 'false');
+        } catch (error) {
+            console.error('Error saving filter visibility state:', error);
+        }
+    };
+    
+    /**
+     * Load filter visibility state from localStorage
+     */
+    const loadFilterVisibilityState = function() {
+        try {
+            const isCollapsed = localStorage.getItem('filtersCollapsed') === 'true';
+            
+            if (isCollapsed && filterContent) {
+                filterContent.classList.add('collapsed');
+                
+                if (filterToggleButton) {
+                    filterToggleButton.classList.add('collapsed');
+                    const icon = filterToggleButton.querySelector('.toggle-icon');
+                    if (icon) {
+                        icon.textContent = '+';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading filter visibility state:', error);
+        }
     };
     
     /**
@@ -216,10 +275,7 @@ const FiltersComponent = (function() {
             activeFilters.size = filters.size;
         }
         
-        if (filters.environment && Array.isArray(filters.environment)) {
-            activeFilters.environment = filters.environment;
-        }
-        
+
         // Update UI
         updateFilterUI();
         
@@ -244,48 +300,42 @@ const FiltersComponent = (function() {
             case 'wildshape-all':
                 setFilters({
                     cr: { min: 0, max: 1 },
-                    size: ['Tiny', 'Small', 'Medium', 'Large'],
-                    environment: ['Forest', 'Grassland', 'Hill']
+                    size: ['Tiny', 'Small', 'Medium', 'Large']
                 });
                 break;
                 
             case 'wildshape-moon':
                 setFilters({
                     cr: { min: 0, max: 3 },
-                    size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge'],
-                    environment: ['Forest', 'Grassland', 'Hill']
+                    size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge']
                 });
                 break;
                 
             case 'conjure':
                 setFilters({
                     cr: { min: 0, max: 2 },
-                    size: ['Tiny', 'Small', 'Medium', 'Large'],
-                    environment: ['Forest', 'Grassland', 'Hill']
+                    size: ['Tiny', 'Small', 'Medium', 'Large']
                 });
                 break;
                 
             case 'grassland':
                 setFilters({
                     cr: { min: 0, max: 6 },
-                    size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'],
-                    environment: ['Grassland']
+                    size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan']
                 });
                 break;
                 
             case 'forest':
                 setFilters({
                     cr: { min: 0, max: 6 },
-                    size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'],
-                    environment: ['Forest']
+                    size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan']
                 });
                 break;
                 
             case 'hill':
                 setFilters({
                     cr: { min: 0, max: 6 },
-                    size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'],
-                    environment: ['Hill']
+                    size: ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan']
                 });
                 break;
                 
@@ -311,18 +361,7 @@ const FiltersComponent = (function() {
             return false;
         }
         
-        // Filter by environment (if environment is specified)
-        if (beast.environment) {
-            // Check if any of the active environment filters match the beast's environment
-            const matchesEnvironment = activeFilters.environment.some(env => 
-                beast.environment.toLowerCase().includes(env.toLowerCase())
-            );
-            
-            if (!matchesEnvironment) {
-                return false;
-            }
-        }
-        
+
         // Beast passed all filters
         return true;
     };

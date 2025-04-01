@@ -48,7 +48,13 @@
                             <button id="clear-search" class="clear-button" aria-label="Clear search">&times;</button>
                         </div>
                         <div class="filter-container">
-                            <h3>Filters</h3>
+                            <div class="filter-header">
+                                <h3>Filters</h3>
+                                <button id="toggle-filters" class="toggle-filters-button" aria-label="Toggle filters visibility">
+                                    <span class="toggle-icon">−</span>
+                                </button>
+                            </div>
+                            <div class="filter-content" id="filter-content">
                             <div class="filter-group">
                                 <h4>Challenge Rating</h4>
                                 <div class="range-filter">
@@ -91,15 +97,9 @@
                                     <label><input type="checkbox" value="Gargantuan" checked> Gargantuan</label>
                                 </div>
                             </div>
-                            <div class="filter-group">
-                                <h4>Environment</h4>
-                                <div class="checkbox-filter">
-                                    <label><input type="checkbox" value="Forest" checked> Forest</label>
-                                    <label><input type="checkbox" value="Grassland" checked> Grassland</label>
-                                    <label><input type="checkbox" value="Hill" checked> Hill</label>
-                                </div>
-                            </div>
+
                             <button id="reset-filters" class="filter-button">Reset Filters</button>
+                            </div>
                         </div>
                         <div id="beast-list" class="list-container" aria-label="Beast list">
                             <!-- Beast list items will be populated here -->

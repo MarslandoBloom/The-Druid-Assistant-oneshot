@@ -194,13 +194,53 @@ header h1 {
 .filter-container {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    padding: var(--spacing-md);
     background-color: var(--bg-light);
 }
 
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.filter-content {
+    padding: var(--spacing-md);
+    overflow: hidden;
+    transition: max-height var(--transition-normal);
+}
+
+.filter-content.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: none;
+}
+
 .filter-container h3 {
-    margin-bottom: var(--spacing-md);
     color: var(--primary-color);
+    margin: 0;
+}
+
+.toggle-filters-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: transform var(--transition-fast);
+}
+
+.toggle-filters-button.collapsed .toggle-icon {
+    transform: rotate(-90deg);
 }
 
 .filter-group {

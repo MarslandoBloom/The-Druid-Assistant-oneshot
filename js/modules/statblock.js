@@ -1318,23 +1318,7 @@ const StatblockModule = (function() {
      * Get available environments from the current dataset
      * @returns {string[]} Array of unique environments
      */
-    const getAvailableEnvironments = function() {
-        if (beastList.length === 0) return [];
-        
-        // Create a Set to eliminate duplicates
-        const environmentsSet = new Set();
-        
-        // Parse environments from all beasts
-        beastList.forEach(beast => {
-            if (beast.environment) {
-                const environments = beast.environment.split(', ');
-                environments.forEach(env => environmentsSet.add(env.trim()));
-            }
-        });
-        
-        // Convert Set to Array and sort alphabetically
-        return [...environmentsSet].sort();
-    };
+    // Environment function removed as it's no longer needed
     
     // Public API
     return {
@@ -1344,7 +1328,6 @@ const StatblockModule = (function() {
         updateFavoritesList,
         sortBeastList,
         getAvailableBeastTypes,
-        getAvailableEnvironments,
         switchToWildshape,
         switchToConjure
     };
