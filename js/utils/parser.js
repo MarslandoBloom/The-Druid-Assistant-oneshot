@@ -41,8 +41,8 @@ const Parser = (function() {
                 const hpMatch = contentBlock.match(/>- \*\*Hit Points\*\* ([^\r\n]+)/);
                 const speedMatch = contentBlock.match(/>- \*\*Speed\*\* ([^\r\n]+)/);
                 
-                // Parse ability scores
-                const abilityTable = contentBlock.match(/>\|STR\|DEX\|CON\|INT\|WIS\|CHA\|[\s\S]+?>\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|/);
+                // Parse ability scores - use a more robust method
+                const abilities = parseAbilityScoresTable(contentBlock);
                 
                 // Parse additional attributes
                 const skillsMatch = contentBlock.match(/>- \*\*Skills\*\* ([^\r\n]+)/);
@@ -133,13 +133,13 @@ const Parser = (function() {
                     ac: acMatch ? acMatch[1].trim() : '',
                     hp: hpMatch ? hpMatch[1].trim() : '',
                     speed: speedMatch ? speedMatch[1].trim() : '',
-                    abilities: {
-                        str: parseAbilityScore(abilityTable ? abilityTable[1] : ''),
-                        dex: parseAbilityScore(abilityTable ? abilityTable[2] : ''),
-                        con: parseAbilityScore(abilityTable ? abilityTable[3] : ''),
-                        int: parseAbilityScore(abilityTable ? abilityTable[4] : ''),
-                        wis: parseAbilityScore(abilityTable ? abilityTable[5] : ''),
-                        cha: parseAbilityScore(abilityTable ? abilityTable[6] : '')
+                    abilities: abilities || {
+                        str: { score: 10, modifier: '+0' },
+                        dex: { score: 10, modifier: '+0' },
+                        con: { score: 10, modifier: '+0' },
+                        int: { score: 10, modifier: '+0' },
+                        wis: { score: 10, modifier: '+0' },
+                        cha: { score: 10, modifier: '+0' }
                     },
                     skills: skillsMatch ? skillsMatch[1].trim() : '',
                     senses: sensesMatch ? sensesMatch[1].trim() : '',
@@ -169,14 +169,80 @@ const Parser = (function() {
      * @returns {Object} Object with score and modifier
      */
     const parseAbilityScore = (abilityText) => {
-        const match = abilityText.match(/(\d+) \(([+-]\d+)\)/);
+        // Clean up the text - remove '>' and any extra whitespace
+        const cleanText = (abilityText || '').trim().replace(/^>\s*/, '');
+        
+        // More flexible regex that handles variations in spacing
+        const match = cleanText.match(/(\d+)\s*\(([+-]\d+)\)/);
         if (match) {
             return {
                 score: parseInt(match[1], 10),
                 modifier: match[2]
             };
         }
+        console.warn("Failed to parse ability score from: '", abilityText, "'");
         return { score: 10, modifier: '+0' };
+    };
+    
+    /**
+     * Parse ability scores table from markdown content
+     * @param {string} contentBlock - The content block containing the ability scores table
+     * @returns {Object|null} Object with parsed ability scores or null if parsing failed
+     */
+    const parseAbilityScoresTable = (contentBlock) => {
+        try {
+            // Split the content into lines
+            const lines = contentBlock.split('\n');
+            
+            // Find the ability score table header line
+            let headerLineIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes('|STR|DEX|CON|INT|WIS|CHA|')) {
+                    headerLineIndex = i;
+                    break;
+                }
+            }
+            
+            // If we couldn't find the header, return null
+            if (headerLineIndex === -1) {
+                console.warn("Couldn't find ability score header");
+                return null;
+            }
+            
+            // The values should be on the third line of the table (header + separator + values)
+            const valuesLineIndex = headerLineIndex + 2;
+            if (valuesLineIndex >= lines.length) {
+                console.warn("Ability score table is incomplete");
+                return null;
+            }
+            
+            const valuesLine = lines[valuesLineIndex];
+            
+            // Clean the line (remove leading > character if present)
+            const cleanLine = valuesLine.replace(/^>\s*/, '');
+            
+            // Split by | and remove first and last empty entries which are just the table border
+            const cells = cleanLine.split('|').filter(Boolean);
+            
+            // Should have exactly 6 ability scores
+            if (cells.length !== 6) {
+                console.warn("Unexpected number of ability scores:", cells.length, "Line:", valuesLine);
+                return null;
+            }
+            
+            // Parse each ability score
+            return {
+                str: parseAbilityScore(cells[0].trim()),
+                dex: parseAbilityScore(cells[1].trim()),
+                con: parseAbilityScore(cells[2].trim()),
+                int: parseAbilityScore(cells[3].trim()),
+                wis: parseAbilityScore(cells[4].trim()),
+                cha: parseAbilityScore(cells[5].trim())
+            };
+        } catch (error) {
+            console.error("Error parsing ability scores table:", error);
+            return null;
+        }
     };
     
     /**
