@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statblock Collapsible Categories Layout</title>
+    <style>
+        :root {
+            --primary-color: #006400;
+            --primary-light: #008800;
+            --primary-dark: #004d00;
+            --text-color: #333;
+            --list-bg: #f9f9f9;
+            --list-border: #ddd;
+            --list-hover: #e9f5e9;
+            --list-active: #d6ebd6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .statblock-tab {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 20px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .beast-panel {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--list-border);
+            padding-right: 20px;
+            overflow: hidden;
+        }
+
+        .search-filters {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--list-border);
+            border-radius: 4px;
+        }
+
+        .filter-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        .beast-list {
+            overflow-y: auto;
+            padding-right: 5px;
+            max-height: calc(100vh - 120px);
+        }
+
+        .category {
+            margin-bottom: 10px;
+            border: 1px solid var(--list-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .category-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-title {
+            font-weight: bold;
+        }
+
+        .category-count {
+            background-color: white;
+            color: var(--primary-color);
+            border-radius: 12px;
+            padding: 0 8px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .beast-items {
+            background-color: var(--list-bg);
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .category.expanded .beast-items {
+            max-height: 1000px;
+        }
+
+        .beast-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--list-border);
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .beast-item:last-child {
+            border-bottom: none;
+        }
+
+        .beast-item:hover {
+            background-color: var(--list-hover);
+        }
+
+        .beast-item.active {
+            background-color: var(--list-active);
+            border-left: 4px solid var(--primary-color);
+            font-weight: bold;
+        }
+
+        .beast-name {
+            flex: 1;
+        }
+
+        .beast-cr {
+            font-size: 0.9em;
+            color: #666;
+            margin-left: 10px;
+        }
+
+        .statblock-display {
+            background-color: white;
+            border: 1px solid var(--list-border);
+            border-radius: 4px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .category.expanded .toggle-icon {
+            transform: rotate(90deg);
+        }
+
+        /* Mock statblock styles */
+        .statblock {
+            font-family: "Noto Serif", "Palatino Linotype", Palatino, serif;
+            padding: 5px 10px;
+        }
+
+        .statblock-title {
+            color: var(--primary-dark);
+            font-size: 22px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .statblock-subtitle {
+            font-style: italic;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .statblock-divider {
+            border-top: 1px solid #DDD;
+            margin: 10px 0;
+        }
+
+        .statblock-attributes, .statblock-details {
+            margin-bottom: 15px;
+        }
+
+        .statblock-ability-scores {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .statblock-ability {
+            width: 16%;
+        }
+
+        .ability-name {
+            font-weight: bold;
+        }
+
+        .statblock-traits, .statblock-actions {
+            margin-top: 15px;
+        }
+
+        .trait-name, .action-name {
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .statblock-tab {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow: visible;
+            }
+
+            .beast-panel {
+                border-right: none;
+                border-bottom: 1px solid var(--list-border);
+                padding-right: 0;
+                padding-bottom: 20px;
+                margin-bottom: 20px;
+            }
+
+            .beast-list {
+                max-height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="statblock-tab">
+            <!-- Beast List Panel with Collapsible Categories -->
+            <div class="beast-panel">
+                <!-- Search and Filters -->
+                <div class="search-filters">
+                    <input type="text" class="search-input" placeholder="Search beasts...">
+                    <button class="filter-btn">Filters</button>
+                </div>
+
+                <!-- Beast List with Categories -->
+                <div class="beast-list">
+                    <!-- CR 0-1/4 Category -->
+                    <div class="category expanded">
+                        <div class="category-header">
+                            <span class="category-title">CR 0-1/4</span>
+                            <span class="category-count">8</span>
+                            <span class="toggle-icon">▶</span>
+                        </div>
+                        <div class="beast-items">
+                            <div class="beast-item active">
+                                <span class="beast-name">Wolf</span>
+                                <span class="beast-cr">CR 1/4</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Boar</span>
+                                <span class="beast-cr">CR 1/4</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Giant Owl</span>
+                                <span class="beast-cr">CR 1/4</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Panther</span>
+                                <span class="beast-cr">CR 1/4</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Hawk</span>
+                                <span class="beast-cr">CR 0</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Eagle</span>
+                                <span class="beast-cr">CR 0</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Owl</span>
+                                <span class="beast-cr">CR 0</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Rat</span>
+                                <span class="beast-cr">CR 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CR 1/2 Category -->
+                    <div class="category">
+                        <div class="category-header">
+                            <span class="category-title">CR 1/2</span>
+                            <span class="category-count">1</span>
+                            <span class="toggle-icon">▶</span>
+                        </div>
+                        <div class="beast-items">
+                            <div class="beast-item">
+                                <span class="beast-name">Crocodile</span>
+                                <span class="beast-cr">CR 1/2</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CR 1 Category -->
+                    <div class="category">
+                        <div class="category-header">
+                            <span class="category-title">CR 1</span>
+                            <span class="category-count">4</span>
+                            <span class="toggle-icon">▶</span>
+                        </div>
+                        <div class="beast-items">
+                            <div class="beast-item">
+                                <span class="beast-name">Dire Wolf</span>
+                                <span class="beast-cr">CR 1</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Brown Bear</span>
+                                <span class="beast-cr">CR 1</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Giant Spider</span>
+                                <span class="beast-cr">CR 1</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Lion</span>
+                                <span class="beast-cr">CR 1</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CR 2+ Category -->
+                    <div class="category">
+                        <div class="category-header">
+                            <span class="category-title">CR 2+</span>
+                            <span class="category-count">2</span>
+                            <span class="toggle-icon">▶</span>
+                        </div>
+                        <div class="beast-items">
+                            <div class="beast-item">
+                                <span class="beast-name">Giant Elk</span>
+                                <span class="beast-cr">CR 2</span>
+                            </div>
+                            <div class="beast-item">
+                                <span class="beast-name">Tiger</span>
+                                <span class="beast-cr">CR 2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statblock Display Panel -->
+            <div class="statblock-display">
+                <div class="statblock">
+                    <h1 class="statblock-title">Wolf</h1>
+                    <p class="statblock-subtitle">Medium beast, unaligned</p>
+                    <div class="statblock-divider"></div>
+                    <div class="statblock-attributes">
+                        <p><strong>Armor Class:</strong> 13 (natural armor)</p>
+                        <p><strong>Hit Points:</strong> 11 (2d8+2)</p>
+                        <p><strong>Speed:</strong> 40 ft.</p>
+                    </div>
+                    <div class="statblock-ability-scores">
+                        <div class="statblock-ability">
+                            <div class="ability-name">STR</div>
+                            <div class="ability-score">12 (+1)</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="ability-name">DEX</div>
+                            <div class="ability-score">15 (+2)</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="ability-name">CON</div>
+                            <div class="ability-score">12 (+1)</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="ability-name">INT</div>
+                            <div class="ability-score">3 (-4)</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="ability-name">WIS</div>
+                            <div class="ability-score">12 (+1)</div>
+                        </div>
+                        <div class="statblock-ability">
+                            <div class="ability-name">CHA</div>
+                            <div class="ability-score">6 (-2)</div>
+                        </div>
+                    </div>
+                    <div class="statblock-details">
+                        <p><strong>Skills:</strong> Perception +3, Stealth +4</p>
+                        <p><strong>Senses:</strong> Passive Perception 13</p>
+                        <p><strong>Languages:</strong> —</p>
+                        <p><strong>Challenge:</strong> 1/4 (50 XP)</p>
+                    </div>
+                    <div class="statblock-divider"></div>
+                    <div class="statblock-traits">
+                        <p><span class="trait-name">Keen Hearing and Smell.</span> The wolf has advantage on Wisdom (Perception) checks that rely on hearing or smell.</p>
+                        <p><span class="trait-name">Pack Tactics.</span> The wolf has advantage on attack rolls against a creature if at least one of the wolf's allies is within 5 ft. of the creature and the ally isn't incapacitated.</p>
+                    </div>
+                    <div class="statblock-divider"></div>
+                    <div class="statblock-actions">
+                        <h3>Actions</h3>
+                        <p><span class="action-name">Bite.</span> Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple script to toggle categories
+        document.querySelectorAll('.category-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const category = header.parentElement;
+                category.classList.toggle('expanded');
+            });
+        });
+    </script>
+</body>
+</html>

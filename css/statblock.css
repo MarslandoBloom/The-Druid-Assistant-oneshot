@@ -174,7 +174,7 @@
 
 /* Beast list */
 .beast-item {
-    padding: 10px;
+    padding: 6px 10px;
     margin: 0;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -185,7 +185,7 @@
     align-items: center;
     background-color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    min-height: 44px;
+    min-height: 36px;
 }
 
 .beast-item:hover {
@@ -264,7 +264,7 @@
     gap: 8px;
 }
 
-/* Favorited beasts */
+/* Favourited beasts */
 .beast-item.favorite .beast-name::after {
     content: "★";
     color: gold;
@@ -297,34 +297,7 @@
     color: var(--text-light);
 }
 
-/* Recently viewed list */
-.recently-viewed-container {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-}
-
-.recently-viewed-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.recent-item {
-    background-color: var(--bg-light);
-    padding: 0.3rem 0.5rem;
-    border-radius: var(--border-radius);
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background-color var(--transition-fast);
-}
-
-.recent-item:hover {
-    background-color: var(--primary-light);
-    color: white;
-}
-
-/* Favorites styling */
+/* Favourites styling */
 .favorites-container {
     margin-top: 1rem;
 }
@@ -406,6 +379,11 @@
     min-width: 200px;
 }
 
+.favorite-options-menu {
+    min-width: 180px;
+    font-size: 0.9rem;
+}
+
 .context-menu-item {
     padding: 0.5rem 1rem;
     cursor: pointer;
@@ -422,6 +400,10 @@
 }
 
 /* Results count */
+.result-count-container {
+    margin-top: 12px;
+}
+
 .result-count {
     font-size: 0.9rem;
     color: var(--text-color);
@@ -447,4 +429,169 @@
     .comparison-container {
         grid-template-columns: 1fr;
     }
+}
+
+/* CR Grouping styles */
+.cr-groups-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cr-groups-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.expand-all-button,
+.collapse-all-button {
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex: 1;
+    margin: 0 2px;
+}
+
+.expand-all-button:hover,
+.collapse-all-button:hover {
+    background-color: var(--primary-light);
+    color: white;
+}
+
+.cr-group {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-bottom: 6px;
+    background-color: white;
+}
+
+.cr-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background-color: var(--bg-light);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.cr-group-header:hover {
+    background-color: var(--bg-medium);
+}
+
+.cr-group-header h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.toggle-group-button {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.3s;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cr-group-content {
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 500px;
+    overflow-y: auto;
+    transition: max-height 0.3s, padding 0.3s;
+}
+
+.cr-group.collapsed .cr-group-content {
+    max-height: 0;
+    padding: 0 8px;
+    overflow: hidden;
+}
+
+.cr-group.collapsed .toggle-group-button {
+    transform: rotate(-90deg);
+}
+
+/* Favorite Buttons Container */
+.favorite-buttons-container {
+    display: flex;
+    gap: 6px;
+    margin: 6px 0;
+}
+
+.favorite-category-button {
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex: 1;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.favorite-category-button:hover {
+    background-color: var(--primary-light);
+    color: white;
+}
+
+/* Favorite action buttons */
+.favorite-buttons {
+    margin-top: 6px;  /* Reduce space between button groups */
+}
+
+.favorite-action {
+    background-color: var(--bg-light);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.favorite-action:hover {
+    background-color: var(--primary-light);
+    color: white;
+}
+
+.favorite-action.active {
+    background-color: var(--primary-light);
+    color: white;
+    border: 1px solid var(--primary-dark);
+}
+
+.return-button {
+    background-color: var(--bg-light);
+    color: var(--primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-weight: bold;
+    margin: 8px 0;
+    width: 100%;
+}
+
+.return-button:hover {
+    background-color: var(--primary-light);
+    color: white;
+}
+
+/* List view modes */
+.list-mode {
+    display: none;
+}
+
+.list-mode.active {
+    display: block;
 }

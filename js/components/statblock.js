@@ -43,7 +43,8 @@ const StatblockComponent = (function() {
     const initActionButtons = function() {
         const wildshapeButton = document.getElementById('wildshape-button');
         const conjureButton = document.getElementById('conjure-button');
-        const favoriteButton = document.getElementById('favorite-button');
+        const wildshapeFavButton = document.getElementById('wildshape-fav-button');
+        const conjureFavButton = document.getElementById('conjure-fav-button');
         
         // Add event listeners
         if (wildshapeButton) {
@@ -54,8 +55,12 @@ const StatblockComponent = (function() {
             conjureButton.addEventListener('click', handleConjureClick);
         }
         
-        if (favoriteButton) {
-            favoriteButton.addEventListener('click', handleFavoriteClick);
+        if (wildshapeFavButton) {
+            wildshapeFavButton.addEventListener('click', () => handleFavouriteClick('wildshape'));
+        }
+        
+        if (conjureFavButton) {
+            conjureFavButton.addEventListener('click', () => handleFavouriteClick('conjure'));
         }
     };
     
@@ -103,8 +108,8 @@ const StatblockComponent = (function() {
             // Enable action buttons
             enableActionButtons();
             
-            // Update favorite button state
-            updateFavoriteButtonState(beast);
+            // Update favourite button state
+            updateFavouriteButtonState(beast);
             
             console.log('StatblockComponent: Beast rendering completed successfully');
         } catch (error) {
@@ -131,30 +136,46 @@ const StatblockComponent = (function() {
     const enableActionButtons = function() {
         const wildshapeButton = document.getElementById('wildshape-button');
         const conjureButton = document.getElementById('conjure-button');
-        const favoriteButton = document.getElementById('favorite-button');
+        const wildshapeFavButton = document.getElementById('wildshape-fav-button');
+            const conjureFavButton = document.getElementById('conjure-fav-button');
         
         if (wildshapeButton) wildshapeButton.disabled = false;
         if (conjureButton) conjureButton.disabled = false;
-        if (favoriteButton) favoriteButton.disabled = false;
+        if (wildshapeFavButton) wildshapeFavButton.disabled = false;
+        if (conjureFavButton) conjureFavButton.disabled = false;
     };
     
     /**
-     * Update favorite button state
-     * @param {Object} beast - The beast to check favorite status
+     * Update favourite button state
+     * @param {Object} beast - The beast to check favourite status
      */
-    const updateFavoriteButtonState = function(beast) {
-        const favoriteButton = document.getElementById('favorite-button');
-        if (!favoriteButton) return;
+    const updateFavouriteButtonState = function(beast) {
+        const wildshapeFavButton = document.getElementById('wildshape-fav-button');
+        const conjureFavButton = document.getElementById('conjure-fav-button');
         
-        UserStore.isFavorite(beast.id).then(isFavorite => {
-            if (isFavorite) {
-                favoriteButton.textContent = 'Remove from Favorites';
-                favoriteButton.classList.add('active');
-            } else {
-                favoriteButton.textContent = 'Add to Favorites';
-                favoriteButton.classList.remove('active');
-            }
-        });
+        if (wildshapeFavButton) {
+            UserStore.isFavouriteByType(beast.id, 'wildshape').then(isFavourite => {
+                if (isFavourite) {
+                    wildshapeFavButton.textContent = 'Remove from Wildshape Favourites';
+                    wildshapeFavButton.classList.add('active');
+                } else {
+                    wildshapeFavButton.textContent = 'Add to Wildshape Favourites';
+                    wildshapeFavButton.classList.remove('active');
+                }
+            });
+        }
+        
+        if (conjureFavButton) {
+            UserStore.isFavouriteByType(beast.id, 'conjure').then(isFavourite => {
+                if (isFavourite) {
+                    conjureFavButton.textContent = 'Remove from Conjure Favourites';
+                    conjureFavButton.classList.add('active');
+                } else {
+                    conjureFavButton.textContent = 'Add to Conjure Favourites';
+                    conjureFavButton.classList.remove('active');
+                }
+            });
+        }
     };
     
     /**
@@ -180,25 +201,26 @@ const StatblockComponent = (function() {
     };
     
     /**
-     * Handle favorite button click
+     * Handle favourite button click
+     * @param {string} type - Type of favourite ('wildshape' or 'conjure')
      */
-    const handleFavoriteClick = function() {
+    const handleFavouriteClick = function(type) {
         if (!currentBeast) return;
         
-        UserStore.isFavorite(currentBeast.id).then(isFavorite => {
-            if (isFavorite) {
-                // Remove from favorites
-                UserStore.removeFavorite(currentBeast.id).then(() => {
-                    updateFavoriteButtonState(currentBeast);
-                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_REMOVED, currentBeast);
-                    UIUtils.showNotification(`Removed ${currentBeast.name} from favorites`, 'info');
+        UserStore.isFavouriteByType(currentBeast.id, type).then(isFavourite => {
+            if (isFavourite) {
+                // Remove from favourites
+                UserStore.removeFavouriteByType(currentBeast.id, type).then(() => {
+                    updateFavouriteButtonState(currentBeast);
+                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_REMOVED, { beast: currentBeast, type: type });
+                    UIUtils.showNotification(`Removed ${currentBeast.name} from ${type} favourites`, 'info');
                 });
             } else {
-                // Add to favorites
-                UserStore.addFavorite(currentBeast.id).then(() => {
-                    updateFavoriteButtonState(currentBeast);
-                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_ADDED, currentBeast);
-                    UIUtils.showNotification(`Added ${currentBeast.name} to favorites`, 'success');
+                // Add to favourites
+                UserStore.addFavouriteByType(currentBeast.id, type).then(() => {
+                    updateFavouriteButtonState(currentBeast);
+                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_ADDED, { beast: currentBeast, type: type });
+                    UIUtils.showNotification(`Added ${currentBeast.name} to ${type} favourites`, 'success');
                 });
             }
         });
@@ -216,11 +238,12 @@ const StatblockComponent = (function() {
             // Disable action buttons
             const wildshapeButton = document.getElementById('wildshape-button');
             const conjureButton = document.getElementById('conjure-button');
-            const favoriteButton = document.getElementById('favorite-button');
+            const favouriteButton = document.getElementById('favorite-button');
             
             if (wildshapeButton) wildshapeButton.disabled = true;
             if (conjureButton) conjureButton.disabled = true;
-            if (favoriteButton) favoriteButton.disabled = true;
+            if (wildshapeFavButton) wildshapeFavButton.disabled = true;
+            if (conjureFavButton) conjureFavButton.disabled = true;
             
             currentBeast = null;
             console.log('StatblockComponent: Statblock cleared successfully');

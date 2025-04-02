@@ -155,18 +155,19 @@ header h1 {
 .split-layout {
     display: grid;
     grid-template-columns: 320px 1fr;
-    gap: var(--spacing-md);
+    gap: 8px;
 }
 
 .sidebar {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: 8px;
 }
 
 /* Search styles */
 .search-container {
     position: relative;
+    margin-bottom: 6px;
 }
 
 .search-input {
@@ -195,19 +196,20 @@ header h1 {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     background-color: var(--bg-light);
+    margin-bottom: 6px;
 }
 
 .filter-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md);
+    padding: 8px;
     border-bottom: 1px solid var(--border-color);
     cursor: pointer;
 }
 
 .filter-content {
-    padding: var(--spacing-md);
+    padding: 8px;
     overflow: hidden;
     transition: max-height var(--transition-normal);
 }
@@ -244,11 +246,11 @@ header h1 {
 }
 
 .filter-group {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: 8px;
 }
 
 .filter-group h4 {
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 4px;
     font-size: var(--font-size-base);
 }
 
@@ -350,7 +352,7 @@ header h1 {
 .action-buttons {
     display: flex;
     gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
+    margin-top: 8px;
 }
 
 .action-button {

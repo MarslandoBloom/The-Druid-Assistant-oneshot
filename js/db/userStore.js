@@ -8,7 +8,9 @@ const UserStore = (function() {
     
     // Constants for settings keys
     const KEYS = {
-        FAVORITES: 'favorites'
+        FAVOURITES: 'favourites',
+        WILDSHAPE_FAVOURITES: 'wildshape_favourites',
+        CONJURE_FAVOURITES: 'conjure_favourites'
     };
     
     /**
@@ -235,91 +237,202 @@ const UserStore = (function() {
     };
     
     /**
-     * Get all favorites
-     * @returns {Promise<string[]>} Promise resolving to array of favorite IDs
+     * Get all favourites
+     * @returns {Promise<string[]>} Promise resolving to array of favourite IDs
      */
-    const getFavorites = async () => {
+    const getFavourites = async () => {
         try {
             // Direct database check first
-            const existing = await Database.getById(STORE_NAME, KEYS.FAVORITES);
+            const existing = await Database.getById(STORE_NAME, KEYS.FAVOURITES);
             
             if (existing) {
                 return existing.value || [];
             }
             
             // If not found, create the setting
-            await Database.update(STORE_NAME, {
-                key: KEYS.FAVORITES,
+            await Database.add(STORE_NAME, {
+                key: KEYS.FAVOURITES,
                 value: []
             });
             
             return [];
         } catch (error) {
-            console.warn('Error getting favorites, returning empty array:', error);
+            console.warn('Error getting favourites, returning empty array:', error);
             return [];
         }
     };
     
     /**
-     * Check if an entity is favorited
-     * @param {string} id - Entity ID to check
-     * @returns {Promise<boolean>} Promise resolving to boolean indicating favorite status
+     * Get favourites by type (wildshape or conjure)
+     * @param {string} type - The type of favourites ('wildshape' or 'conjure')
+     * @returns {Promise<string[]>} Promise resolving to array of favourite IDs
      */
-    const isFavorite = async (id) => {
-        const favorites = await getFavorites();
-        return favorites.includes(id);
+    const getFavouritesByType = async (type) => {
+        try {
+            // Get the appropriate key based on type
+            const key = type === 'wildshape' ? KEYS.WILDSHAPE_FAVOURITES : KEYS.CONJURE_FAVOURITES;
+            
+            // Direct database check first
+            const existing = await Database.getById(STORE_NAME, key);
+            
+            if (existing) {
+                return existing.value || [];
+            }
+            
+            // If not found, create the setting
+            await Database.add(STORE_NAME, {
+                key,
+                value: []
+            });
+            
+            return [];
+        } catch (error) {
+            console.warn(`Error getting ${type} favourites, returning empty array:`, error);
+            return [];
+        }
     };
     
     /**
-     * Add a favorite
-     * @param {string} id - Entity ID to add to favorites
+     * Check if an entity is favourited
+     * @param {string} id - Entity ID to check
+     * @returns {Promise<boolean>} Promise resolving to boolean indicating favourite status
+     */
+    const isFavourite = async (id) => {
+        const favourites = await getFavourites();
+        return favourites.includes(id);
+    };
+    
+    /**
+     * Check if an entity is favourited by type
+     * @param {string} id - Entity ID to check
+     * @param {string} type - Type of favourite ('wildshape' or 'conjure')
+     * @returns {Promise<boolean>} Promise resolving to boolean indicating favourite status
+     */
+    const isFavouriteByType = async (id, type) => {
+        const favourites = await getFavouritesByType(type);
+        return favourites.includes(id);
+    };
+    
+    /**
+     * Add a favourite
+     * @param {string} id - Entity ID to add to favourites
      * @returns {Promise<boolean>} Promise resolving to success indicator
      */
-    const addFavorite = async (id) => {
+    const addFavourite = async (id) => {
         if (!id) return false;
         
-        const favorites = await getFavorites();
+        const favourites = await getFavourites();
         
         // Check if already exists
-        if (favorites.includes(id)) {
-            return true; // Already a favorite
+        if (favourites.includes(id)) {
+            return true; // Already a favourite
         }
         
-        // Add to favorites
-        favorites.push(id);
-        await setSetting(KEYS.FAVORITES, favorites);
+        // Add to favourites
+        favourites.push(id);
+        await setSetting(KEYS.FAVOURITES, favourites);
+        
+        // Also add to wildshape and conjure favourites without CR limitations
+        try {
+            await addFavouriteByType(id, 'wildshape');
+            await addFavouriteByType(id, 'conjure');
+        } catch (error) {
+            console.warn('Error adding to type-based favourites:', error);
+        }
         
         return true;
     };
     
     /**
-     * Remove a favorite
-     * @param {string} id - Entity ID to remove from favorites
+     * Add a favourite by type
+     * @param {string} id - Entity ID to add to favourites
+     * @param {string} type - Type of favourite ('wildshape' or 'conjure')
      * @returns {Promise<boolean>} Promise resolving to success indicator
      */
-    const removeFavorite = async (id) => {
+    const addFavouriteByType = async (id, type) => {
         if (!id) return false;
         
-        const favorites = await getFavorites();
+        // Get the appropriate key based on type
+        const key = type === 'wildshape' ? KEYS.WILDSHAPE_FAVOURITES : KEYS.CONJURE_FAVOURITES;
         
-        // Check if exists
-        if (!favorites.includes(id)) {
-            return true; // Not a favorite, no action needed
+        const favourites = await getFavouritesByType(type);
+        
+        // Check if already exists
+        if (favourites.includes(id)) {
+            return true; // Already a favourite
         }
         
-        // Remove from favorites
-        const updatedFavorites = favorites.filter(fid => fid !== id);
-        await setSetting(KEYS.FAVORITES, updatedFavorites);
+        // Add to favourites
+        favourites.push(id);
+        await setSetting(key, favourites);
         
         return true;
     };
     
     /**
-     * Clear all favorites
+     * Remove a favourite
+     * @param {string} id - Entity ID to remove from favourites
      * @returns {Promise<boolean>} Promise resolving to success indicator
      */
-    const clearFavorites = async () => {
-        await setSetting(KEYS.FAVORITES, []);
+    const removeFavourite = async (id) => {
+        if (!id) return false;
+        
+        const favourites = await getFavourites();
+        
+        // Check if exists
+        if (!favourites.includes(id)) {
+            return true; // Not a favourite, no action needed
+        }
+        
+        // Remove from favourites
+        const updatedFavourites = favourites.filter(fid => fid !== id);
+        await setSetting(KEYS.FAVOURITES, updatedFavourites);
+        
+        // Also remove from type-based favourites
+        try {
+            await removeFavouriteByType(id, 'wildshape');
+            await removeFavouriteByType(id, 'conjure');
+        } catch (error) {
+            console.warn('Error removing from type-based favourites:', error);
+        }
+        
+        return true;
+    };
+    
+    /**
+     * Remove a favourite by type
+     * @param {string} id - Entity ID to remove from favourites
+     * @param {string} type - Type of favourite ('wildshape' or 'conjure')
+     * @returns {Promise<boolean>} Promise resolving to success indicator
+     */
+    const removeFavouriteByType = async (id, type) => {
+        if (!id) return false;
+        
+        // Get the appropriate key based on type
+        const key = type === 'wildshape' ? KEYS.WILDSHAPE_FAVOURITES : KEYS.CONJURE_FAVOURITES;
+        
+        const favourites = await getFavouritesByType(type);
+        
+        // Check if exists
+        if (!favourites.includes(id)) {
+            return true; // Not a favourite, no action needed
+        }
+        
+        // Remove from favourites
+        const updatedFavourites = favourites.filter(fid => fid !== id);
+        await setSetting(key, updatedFavourites);
+        
+        return true;
+    };
+    
+    /**
+     * Clear all favourites
+     * @returns {Promise<boolean>} Promise resolving to success indicator
+     */
+    const clearFavourites = async () => {
+        await setSetting(KEYS.FAVOURITES, []);
+        await setSetting(KEYS.WILDSHAPE_FAVOURITES, []);
+        await setSetting(KEYS.CONJURE_FAVOURITES, []);
         return true;
     };
     
@@ -394,12 +507,16 @@ const UserStore = (function() {
         addSearchToHistory,
         clearSearchHistory,
         
-        // Favorites
-        getFavorites,
-        isFavorite,
-        addFavorite,
-        removeFavorite,
-        clearFavorites,
+        // Favourites
+        getFavourites,
+        getFavouritesByType,
+        isFavourite,
+        isFavouriteByType,
+        addFavourite,
+        addFavouriteByType,
+        removeFavourite,
+        removeFavouriteByType,
+        clearFavourites,
         
         // Import/Export
         getAllSettings,

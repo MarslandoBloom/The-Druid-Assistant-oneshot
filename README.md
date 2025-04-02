@@ -171,3 +171,39 @@ This application helps Druid players with:
 - Simplified beast filtering logic by removing environment-based filtering
 - Added transition effects for smooth filter collapse/expand animation
 - Fixed styling for improved visual consistency with rest of the application
+
+### Stage 9: Beast List Organization and Favorites Enhancement (April 2, 2025)
+- Redesigned beast list to use collapsible CR groupings
+- Created seven CR groups: CR 0-1/8, CR 1/4, CR 1/2, CR 1, CR 2, CR 3-4, CR 5-6
+- Added expand/collapse all buttons for easy navigation
+- Enhanced favorite functionality with dedicated purpose-based favorites:
+  - Added "Wildshape Favourites" button to filter beasts suitable for wildshape (CR <= 1)
+  - Added "Conjure Favourites" button to filter beasts suitable for conjuring (CR <= 2)
+- Implemented "Return to Beasts" button when viewing favorites lists
+- Added proper collapsible group interface with toggle controls
+- Updated UserStore with typed favorites for better organization
+- Improved the visual styling of beast list with clearer grouping
+- Enhanced beast presentation with alphabetic sort within each CR group
+- Updated statblock component to work with the new organization
+- Improved keyboard navigation within the collapsible groups
+- Replaced standard favorite button with purpose-specific favorites buttons
+- Retained star icon markers for favorite beasts in the main list
+
+### Stage 10: Statblock Tab UI Enhancements (April 2, 2025)
+- Improved favorites system with separate type-specific favorites:
+  - Replaced single "Add to Favourites" button with separate buttons for Wildshape and Conjure favorites
+  - Added popup menu to star icon in beast list for choosing favorite type
+  - Updated context menu with separate options for adding/removing from each favorite type
+- Enhanced "Return to Beasts" button styling to match other navigation buttons
+- Added CR group expansion state memory:
+  - System now remembers which CR groups were expanded or collapsed
+  - State is preserved when switching between beast list and favorites views
+  - Added persistence using UserStore for preferences
+- Reduced vertical spacing of elements on the left side of the tab:
+  - Decreased padding in beast list items
+  - Reduced margins between CR groups
+  - Optimized spacing in group headers
+  - Made the overall interface more compact while maintaining usability
+- Enhanced favorite star functionality to show popup with type options
+- Updated keyboard shortcut (Alt+F) to show favorite options menu
+- Improved design consistency throughout the interface
