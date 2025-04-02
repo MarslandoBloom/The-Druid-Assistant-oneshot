@@ -167,14 +167,16 @@
 
 /* Selected statblock in list */
 .beast-item.selected {
-    background-color: var(--primary-light);
-    color: white;
-    border-color: var(--primary-dark);
+    background-color: #e0f0e0;
+    color: var(--primary-dark);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 100, 0, 0.1);
+    font-weight: bold;
 }
 
 /* Beast list */
 .beast-item {
-    padding: 6px 10px;
+    padding: 8px 10px;
     margin: 0;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -184,27 +186,29 @@
     justify-content: space-between;
     align-items: center;
     background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    min-height: 36px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    min-height: 38px;
 }
 
 .beast-item:hover {
-    background-color: var(--bg-light);
+    background-color: #f7f9f7;
+    border-color: #c0d6c0;
 }
 
 .beast-item-left {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    width: 70%;
+    width: 90%;
 }
 
+/* Right side of beast item (kept for structure but now empty) */
 .beast-item-right {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
-    width: 30%;
+    width: 10%;
 }
 
 .beast-name {
@@ -214,14 +218,6 @@
 .beast-type {
     font-size: 0.8rem;
     color: var(--text-light);
-}
-
-.beast-cr {
-    font-size: 0.8rem;
-    color: var(--text-light);
-    background-color: rgba(0, 100, 0, 0.1);
-    padding: 2px 5px;
-    border-radius: 10px;
 }
 
 /* Quick favorite button */
@@ -264,23 +260,9 @@
     gap: 8px;
 }
 
-/* Favourited beasts */
-.beast-item.favorite .beast-name::after {
-    content: "★";
-    color: gold;
-    margin-left: 0.3rem;
-}
-
-.favorite-button {
-    color: #ccc;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-}
-
-.favorite-button.active {
-    color: gold;
+/* Favourited beasts - class only, no visual indicator */
+.beast-item.favorite {
+    /* This class is kept for functionality, but we've removed the star visual */
 }
 
 /* Loading state */
@@ -447,19 +429,21 @@
 
 .expand-all-button,
 .collapse-all-button {
-    background-color: var(--bg-light);
-    border: 1px solid var(--border-color);
+    background-color: var(--primary-color);
+    color: white;
+    border: 1px solid var(--primary-dark);
     border-radius: var(--border-radius);
     padding: 5px 10px;
     cursor: pointer;
     transition: all var(--transition-fast);
     flex: 1;
     margin: 0 2px;
+    font-weight: bold;
 }
 
 .expand-all-button:hover,
 .collapse-all-button:hover {
-    background-color: var(--primary-light);
+    background-color: var(--primary-dark);
     color: white;
 }
 
@@ -469,25 +453,29 @@
     overflow: hidden;
     margin-bottom: 6px;
     background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .cr-group-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 12px;
-    background-color: var(--bg-light);
+    padding: 4px 12px;
+    background-color: #f0f7f0; /* Subtle light green background */
+    border-bottom: 1px solid rgba(0, 100, 0, 0.1);
     cursor: pointer;
     transition: background-color var(--transition-fast);
 }
 
 .cr-group-header:hover {
-    background-color: var(--bg-medium);
+    background-color: #e6f2e6;
 }
 
 .cr-group-header h3 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.9rem;
+    color: var(--primary-dark);
+    font-weight: normal;
 }
 
 .toggle-group-button {
@@ -527,23 +515,24 @@
 .favorite-buttons-container {
     display: flex;
     gap: 6px;
-    margin: 6px 0;
+    margin: 8px 0;
 }
 
 .favorite-category-button {
-    background-color: var(--bg-light);
-    border: 1px solid var(--border-color);
+    background-color: #f0f7f0;
+    border: 1px solid var(--primary-color);
     border-radius: var(--border-radius);
-    padding: 8px 12px;
+    padding: 10px 12px;
     cursor: pointer;
     transition: all var(--transition-fast);
     flex: 1;
     font-weight: bold;
-    color: var(--primary);
+    color: var(--primary-color);
+    text-align: center;
 }
 
 .favorite-category-button:hover {
-    background-color: var(--primary-light);
+    background-color: var(--primary-color);
     color: white;
 }
 
@@ -553,28 +542,29 @@
 }
 
 .favorite-action {
-    background-color: var(--bg-light);
-    color: var(--primary);
-    border: 1px solid var(--primary);
+    background-color: #f0f7f0;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    transition: all 0.2s ease;
 }
 
 .favorite-action:hover {
-    background-color: var(--primary-light);
+    background-color: var(--primary-color);
     color: white;
 }
 
 .favorite-action.active {
-    background-color: var(--primary-light);
+    background-color: var(--primary-color);
     color: white;
     border: 1px solid var(--primary-dark);
 }
 
 .return-button {
-    background-color: var(--bg-light);
-    color: var(--primary);
-    border: 1px solid var(--border-color);
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
     border-radius: var(--border-radius);
-    padding: 8px 12px;
+    padding: 10px 12px;
     cursor: pointer;
     transition: all var(--transition-fast);
     font-weight: bold;
@@ -583,8 +573,9 @@
 }
 
 .return-button:hover {
-    background-color: var(--primary-light);
+    background-color: var(--primary-dark);
     color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* List view modes */

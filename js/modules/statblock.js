@@ -56,8 +56,8 @@ const StatblockModule = (function() {
         EventManager.subscribe('database:ready', loadBeasts);
         EventManager.subscribe('search:performed', handleSearch);
         EventManager.subscribe('filter:changed', handleFilterChange);
-        EventManager.subscribe('favorite:added', updateResultCount);
-        EventManager.subscribe('favorite:removed', updateResultCount);
+        EventManager.subscribe(EventManager.EVENTS.BEAST_FAVORITE_ADDED, handleFavoriteChange);
+        EventManager.subscribe(EventManager.EVENTS.BEAST_FAVORITE_REMOVED, handleFavoriteChange);
         EventManager.subscribe('tab:changed', handleTabChange);
         
         // The critical subscription for beast import
@@ -558,6 +558,25 @@ const StatblockModule = (function() {
     };
     
     /**
+     * Handle favorite change event
+     * @param {Object} data - The favorite change data
+     */
+    const handleFavoriteChange = function(data) {
+        if (data && data.beast && data.beast.id) {
+            // Get the actual favorite status from the store to make sure UI is accurate
+            UserStore.isFavourite(data.beast.id).then(isFavorite => {
+                // Update the beast item UI to reflect current favorite status
+                updateBeastItemFavouriteStatus(data.beast.id, isFavorite);
+                
+                // Update result count 
+                updateResultCount();
+            }).catch(error => {
+                console.warn('Error checking favorite status:', error);
+            });
+        }
+    };
+    
+    /**
      * Handle search event
      * @param {string} query - The search query
      */
@@ -821,7 +840,7 @@ const StatblockModule = (function() {
             header.addEventListener('click', toggleGroup);
             
             const title = document.createElement('h3');
-            title.textContent = `${groupDef.name} (${beasts.length})`;
+            title.textContent = `${groupDef.name}`;
             
             const toggleBtn = document.createElement('button');
             toggleBtn.className = 'toggle-group-button';
@@ -1000,30 +1019,16 @@ const StatblockModule = (function() {
         leftContent.appendChild(beastName);
         leftContent.appendChild(beastType);
         
-        // Create right content (CR and favourite button)
+        // Create right content (empty now that CR badge is removed)
         const rightContent = document.createElement('div');
         rightContent.className = 'beast-item-right';
         
-        // Beast CR
-        const beastCr = document.createElement('div');
-        beastCr.className = 'beast-cr';
-        beastCr.textContent = `CR ${beast.cr}`;
-        
-        // Add quick favourite toggle
-        const favouriteBtn = document.createElement('button');
-        favouriteBtn.className = 'favorite-button';
-        favouriteBtn.innerHTML = '★';
-        favouriteBtn.title = 'Add to favourites';
-        favouriteBtn.setAttribute('aria-label', 'Toggle favourite');
-        
-        // Check favourite status and update button - but don't break if it fails
+        // Check favourite status and add class if favorited - but don't break if it fails
         try {
             UserStore.isFavourite(beast.id).then(isFavourite => {
                 try {
                     if (isFavourite) {
                         beastItem.classList.add('favorite');
-                        favouriteBtn.classList.add('active');
-                        favouriteBtn.title = 'Remove from favourites';
                     }
                 } catch (error) {
                     console.warn('Error updating favourite UI:', error);
@@ -1034,17 +1039,6 @@ const StatblockModule = (function() {
         } catch (error) {
             console.warn('Error in favourite check:', error);
         }
-        
-        // Add contextmenu event for favorite button to show options
-        favouriteBtn.addEventListener('click', function(event) {
-            event.stopPropagation(); // Prevent beast selection
-            
-            // Create and show favorite options menu
-            showFavoriteOptionsMenu(event, beast);
-        });
-        
-        rightContent.appendChild(beastCr);
-        rightContent.appendChild(favouriteBtn);
         
         // Add to item
         beastItem.appendChild(leftContent);
@@ -1273,7 +1267,7 @@ const StatblockModule = (function() {
                     UIUtils.showNotification(`Removed ${beast.name} from ${type} favourites`, 'info');
                     
                     // Publish event
-                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_REMOVED, { beast, type });
+                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_REMOVED, { beast, type: type });
                 });
             } else {
                 // Add to favourites
@@ -1285,7 +1279,7 @@ const StatblockModule = (function() {
                     UIUtils.showNotification(`Added ${beast.name} to ${type} favourites`, 'success');
                     
                     // Publish event
-                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_ADDED, { beast, type });
+                    EventManager.publish(EventManager.EVENTS.BEAST_FAVORITE_ADDED, { beast, type: type });
                 });
             }
         });
@@ -1306,18 +1300,6 @@ const StatblockModule = (function() {
                 beastItem.classList.add('favorite');
             } else {
                 beastItem.classList.remove('favorite');
-            }
-            
-            // Update the favourite button
-            const favouriteBtn = beastItem.querySelector('.favorite-button');
-            if (favouriteBtn) {
-                if (isFavourite) {
-                    favouriteBtn.classList.add('active');
-                    favouriteBtn.title = 'Remove from favourites';
-                } else {
-                    favouriteBtn.classList.remove('active');
-                    favouriteBtn.title = 'Add to favourites';
-                }
             }
         }
     };

@@ -207,3 +207,56 @@ This application helps Druid players with:
 - Enhanced favorite star functionality to show popup with type options
 - Updated keyboard shortcut (Alt+F) to show favorite options menu
 - Improved design consistency throughout the interface
+
+### Stage 11: UI Styling Improvements (April 2, 2025)
+- Improved visual hierarchy for better UI clarity:
+  - Made CR group headings less prominent with smaller font and neutral styling
+  - Removed beast counts from CR group headings for cleaner appearance
+- Enhanced color scheme while maintaining cream/dark green theme:
+  - Added subtle green backgrounds to group headers and containers
+  - Made CR badges more prominent with white text on dark green background
+  - Created consistent light green backgrounds for different UI sections
+  - Added soft shadows for improved depth perception
+- Standardized button styling throughout the application:
+  - Created consistent styling for action buttons with uppercase text and shadows
+  - Made favorite category buttons more prominent
+  - Improved "Return to Beasts" button with stronger color and better contrast
+  - Enhanced filter buttons with consistent styling and hover effects
+  - Made expand/collapse buttons visually consistent with other primary actions
+- Improved selected beast highlighting with more subtle but clear indication
+- Enhanced hover states and interactive elements with consistent feedback
+
+### Stage 12: Favorite Icon Improvements (April 2, 2025)
+- Fixed issues with the favorite star icons in the beast list:
+  - Removed duplicate stars that appeared in some cases
+  - Made star icons purely visual indicators (non-interactive)
+  - Ensured stars update properly when favorites are added or removed
+  - Removed click functionality from star icons as dedicated buttons now handle this
+- Improved favorite status synchronization:
+  - Added event handler for favorite status changes to update UI
+  - Modified favorite status updates to use actual database state
+  - Implemented consistent star display across different views
+  - Fixed edge cases with favorite status not being properly reflected in UI
+- Enhanced the visual styling:
+  - Made favorite star color more consistent
+  - Improved visual indication of favorite status
+
+### Stage 13: Removed Star from Beast List (April 2, 2025)
+- Completely removed the favorite star icon from the beast list items:
+  - Removed the star element creation in the createBeastItem function
+  - Removed associated star styling from CSS
+  - Maintained all favorite functionality through the favorite class
+  - Simplified the UI by removing unnecessary visual indicators
+- Improved code efficiency by removing redundant code
+- Maintained all favorite functionality through the existing system
+
+### Stage 14: Removed CR Badge from Beast List (April 2, 2025)
+- Completely removed the CR badge from the beast list items:
+  - Removed the CR badge element creation in the createBeastItem function
+  - Removed associated CR badge styling from CSS
+  - Adjusted layout to give more space to the beast name and type
+  - Made the UI cleaner by removing redundant information (CR is already shown in group headers)
+- Adjusted the width proportions for beast item elements:
+  - Increased the left side (name/type) from 70% to 90%
+  - Decreased the right side from 30% to 10%
+- Improved visual consistency and reduced clutter in the beast list
