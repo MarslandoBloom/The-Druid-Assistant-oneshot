@@ -176,6 +176,14 @@ const SpellsModule = (function() {
             // Load all spells
             state.allSpells = await SpellStore.getAllSpells();
             
+            console.log('Loaded spells:', state.allSpells.length);
+            // Log the first few spells to see their structure
+            if (state.allSpells.length > 0) {
+                console.log('First 3 spells:');
+                for (let i = 0; i < Math.min(3, state.allSpells.length); i++) {
+                    console.log(`Spell ${i+1}: ${state.allSpells[i].name}`, 'classes:', state.allSpells[i].classes);
+                }
+            }
             // Sort spells by level (high to low) and then by name
             state.allSpells.sort((a, b) => {
                 if (b.level === a.level) {
@@ -189,7 +197,7 @@ const SpellsModule = (function() {
             
         } catch (error) {
             console.error('Error loading initial data:', error);
-            UI.showNotification('Failed to load spell data', 'error');
+            UIUtils.showNotification('Failed to load spell data', 'error');
         }
     };
     
@@ -198,19 +206,28 @@ const SpellsModule = (function() {
      */
     const registerEvents = () => {
         // Listen for spell selection events
-        Events.subscribe('spell:selected', handleSpellSelected);
+        EventManager.subscribe('spell:selected', handleSpellSelected);
         
         // Listen for preparation change events
-        Events.subscribe('spell:preparation:changed', handlePreparationChanged);
+        EventManager.subscribe('spell:preparation:changed', handlePreparationChanged);
         
         // Listen for spell cast events
-        Events.subscribe('spell:cast', handleSpellCast);
+        EventManager.subscribe('spell:cast', handleSpellCast);
         
         // Listen for tab change events
-        Events.subscribe('tab:changed', handleTabChanged);
+        EventManager.subscribe('tab:changed', handleTabChanged);
         
         // Listen for data import events
-        Events.subscribe('data:imported', handleDataImported);
+        EventManager.subscribe('data:imported', handleDataImported);
+        
+        // Listen for spell tab shown events
+        EventManager.subscribe('spell:tab:shown', () => {
+            // Refresh data when spell tab is explicitly shown
+            loadInitialData().then(() => {
+                renderSpellList();
+                updateSpellSlots();
+            });
+        });
     };
     
     /**
@@ -240,10 +257,10 @@ const SpellsModule = (function() {
             updatePreparedCount();
             updateSpellSlots();
             
-            UI.showNotification(`Druid level set to ${newLevel}`, 'success');
+            UIUtils.showNotification(`Druid level set to ${newLevel}`, 'success');
         } catch (error) {
             console.error('Error changing druid level:', error);
-            UI.showNotification('Failed to update druid level', 'error');
+            UIUtils.showNotification('Failed to update druid level', 'error');
         }
     };
     
@@ -287,7 +304,7 @@ const SpellsModule = (function() {
             
         } catch (error) {
             console.error('Error changing wisdom modifier:', error);
-            UI.showNotification('Failed to update wisdom modifier', 'error');
+            UIUtils.showNotification('Failed to update wisdom modifier', 'error');
         }
     };
     
@@ -315,10 +332,10 @@ const SpellsModule = (function() {
                 renderSpellDetail(state.selectedSpellId);
             }
             
-            UI.showNotification('All spells unprepared', 'success');
+            UIUtils.showNotification('All spells unprepared', 'success');
         } catch (error) {
             console.error('Error unpreparing all spells:', error);
-            UI.showNotification('Failed to unprepare all spells', 'error');
+            UIUtils.showNotification('Failed to unprepare all spells', 'error');
         }
     };
     
@@ -344,10 +361,10 @@ const SpellsModule = (function() {
                 renderSpellList();
             }
             
-            UI.showNotification('Spell history reset', 'success');
+            UIUtils.showNotification('Spell history reset', 'success');
         } catch (error) {
             console.error('Error resetting spell history:', error);
-            UI.showNotification('Failed to reset spell history', 'error');
+            UIUtils.showNotification('Failed to reset spell history', 'error');
         }
     };
     
@@ -370,14 +387,14 @@ const SpellsModule = (function() {
                     renderSpellList();
                 }
                 
-                UI.showNotification('Long rest completed - all spell slots restored', 'success');
+                UIUtils.showNotification('Long rest completed - all spell slots restored', 'success');
                 
                 // Display detailed information about spell slots
                 displayRestInfo();
             }
         } catch (error) {
             console.error('Error taking long rest:', error);
-            UI.showNotification('Failed to complete long rest', 'error');
+            UIUtils.showNotification('Failed to complete long rest', 'error');
         }
     };
     
@@ -502,6 +519,8 @@ const SpellsModule = (function() {
         const selectedClasses = Array.from(elements.classCheckboxes)
             .filter(checkbox => checkbox.checked)
             .map(checkbox => checkbox.value);
+        
+        console.log('Class filter changed. Selected classes:', selectedClasses);
         
         // Update state
         state.filters.classes = selectedClasses;
@@ -815,7 +834,7 @@ const SpellsModule = (function() {
                 
                 // Show warning if over limit
                 if (prepCount > prepLimit && !state.warningShown) {
-                    UI.showNotification('Warning: You have exceeded your prepared spell limit!', 'warning', 5000);
+                    UIUtils.showNotification('Warning: You have exceeded your prepared spell limit!', 'warning', 5000);
                     state.warningShown = true;
                 }
             } else {
@@ -861,9 +880,12 @@ const SpellsModule = (function() {
                 const matchesClass = state.filters.classes.some(className => {
                     // Handle both array and string formats for classes
                     if (Array.isArray(spell.classes)) {
-                        return spell.classes.includes(className);
+                        // Case-insensitive comparison
+                        return spell.classes.some(spellClass => 
+                            spellClass.toLowerCase() === className.toLowerCase());
                     } else if (typeof spell.classes === 'string') {
-                        return spell.classes.includes(className);
+                        // Case-insensitive search in string
+                        return spell.classes.toLowerCase().includes(className.toLowerCase());
                     }
                     return false;
                 });

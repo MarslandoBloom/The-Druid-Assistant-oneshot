@@ -253,21 +253,29 @@ const Parser = (function() {
     const parseSpellMarkdown = (markdown) => {
         const spells = [];
         
-        // Split content by spell headers
-        const spellBlocks = markdown.split(/^#### /).slice(1);
+        // Normalize line endings to \n for consistent processing
+        const normalizedMarkdown = markdown.replace(/\r\n/g, '\n');
         
-        for (const block of spellBlocks) {
+        // Regex to match spell blocks - look for #### headers
+        const spellHeaderRegex = /^#### ([^\n]+)\n([\s\S]*?)(?=^#### |$)/gm;
+        
+        let match;
+        let spellCount = 0;
+        
+        while ((match = spellHeaderRegex.exec(normalizedMarkdown)) !== null) {
             try {
-                // Extract spell name
-                const nameEndIndex = block.indexOf('\n');
-                if (nameEndIndex === -1) continue;
+                spellCount++;
+                console.log(`Found spell ${spellCount}: ${match[1]}`);
                 
-                const name = block.substring(0, nameEndIndex).trim();
-                const remainingContent = block.substring(nameEndIndex + 1);
+                const name = match[1].trim();
+                const spellContent = match[2];
                 
                 // Extract level and school
-                const levelSchoolMatch = remainingContent.match(/^\*([^*]+)\*/);
-                if (!levelSchoolMatch) continue;
+                const levelSchoolMatch = spellContent.match(/^\*([^*]+)\*/m);
+                if (!levelSchoolMatch) {
+                    console.warn(`Could not extract level/school for ${name}`);
+                    continue;
+                }
                 
                 const levelSchool = levelSchoolMatch[1].trim();
                 
@@ -279,6 +287,8 @@ const Parser = (function() {
                     const levelMatch = levelSchool.match(/(\d+)[a-z]{2}-level/);
                     if (levelMatch) {
                         level = parseInt(levelMatch[1], 10);
+                    } else {
+                        console.warn(`Could not determine level for ${name}: ${levelSchool}`);
                     }
                 }
                 
@@ -287,35 +297,42 @@ const Parser = (function() {
                 const schoolMatch = levelSchool.match(/(?:cantrip|level) (\w+)/);
                 if (schoolMatch) {
                     school = schoolMatch[1].toLowerCase();
+                } else {
+                    console.warn(`Could not determine school for ${name}: ${levelSchool}`);
                 }
                 
                 // Extract meta properties
-                const metaSection = remainingContent.match(/^___\n([\s\S]*?)^---/m);
-                if (!metaSection) continue;
-                
+                const metaSection = spellContent.match(/^___\n([\s\S]*?)^---/m);
                 const metaProperties = {};
-                const metaLines = metaSection[1].split('\n');
                 
-                for (const line of metaLines) {
-                    const metaMatch = line.match(/^- \*\*([^:]+):\*\* (.+)$/);
-                    if (metaMatch) {
-                        const key = metaMatch[1].trim().toLowerCase().replace(/\s+/g, '');
-                        const value = metaMatch[2].trim();
-                        metaProperties[key] = value;
+                if (metaSection) {
+                    const metaLines = metaSection[1].split('\n');
+                    
+                    for (const line of metaLines) {
+                        const metaMatch = line.match(/^- \*\*([^:]+):\*\* (.+)$/);
+                        if (metaMatch) {
+                            const key = metaMatch[1].trim().toLowerCase().replace(/\s+/g, '');
+                            const value = metaMatch[2].trim();
+                            metaProperties[key] = value;
+                        }
                     }
+                } else {
+                    console.warn(`Could not extract meta properties for ${name}`);
                 }
                 
                 // Extract main description
-                const mainSection = remainingContent.match(/^---\n([\s\S]*?)(?=\*\*\*At Higher Levels\.|^\*\*Classes:|$)/m);
                 let description = '';
+                const mainSection = spellContent.match(/^---\n([\s\S]*?)(?=\*\*\*At Higher Levels\.|^\*\*Classes:|$)/m);
                 
                 if (mainSection) {
                     description = mainSection[1].trim();
+                } else {
+                    console.warn(`Could not extract description for ${name}`);
                 }
                 
                 // Extract higher levels section
                 let higherLevels = '';
-                const higherLevelsMatch = remainingContent.match(/\*\*\*At Higher Levels\.\*\*\* ([\s\S]*?)(?=^\*\*Classes:|$)/m);
+                const higherLevelsMatch = spellContent.match(/\*\*\*At Higher Levels\.\*\*\* ([\s\S]*?)(?=^\*\*Classes:|$)/m);
                 
                 if (higherLevelsMatch) {
                     higherLevels = higherLevelsMatch[1].trim();
@@ -323,10 +340,13 @@ const Parser = (function() {
                 
                 // Extract classes
                 let classes = [];
-                const classesMatch = remainingContent.match(/^\*\*Classes:\*\* (.*?)$/m);
+                const classesMatch = spellContent.match(/^\*\*Classes:\*\* (.*)$/m);
                 
                 if (classesMatch) {
+                    console.log(`Classes for ${name}: '${classesMatch[1]}'`);
                     classes = classesMatch[1].split(', ').map(c => c.trim());
+                } else {
+                    console.warn(`No classes found for ${name}`);
                 }
                 
                 // Create the spell object
@@ -354,6 +374,7 @@ const Parser = (function() {
             }
         }
         
+        console.log(`Total spells parsed: ${spells.length} out of ${spellCount}`);
         return spells;
     };
     
@@ -363,32 +384,40 @@ const Parser = (function() {
      * @returns {Object} Object with parsed data
      */
     const parseMarkdownFile = (fileContent) => {
-        // Try to determine if it's a beast or spell file
+        console.log('Parsing markdown file, content length:', fileContent.length);
         
+        // Try to determine if it's a beast or spell file
         // Check if it contains the beast separator
         if (fileContent.includes('___') && fileContent.includes('>##')) {
+            console.log('Detected beast content');
             const beasts = parseBeastMarkdown(fileContent);
+            console.log(`Parsed ${beasts.length} beasts`);
             return { type: 'beasts', data: beasts };
         }
         
-        // Check if it contains spell headers
-        if (fileContent.includes('#### ') && fileContent.includes('*Casting Time:*')) {
+        // Check if it contains spell headers (look for #### headers)
+        if (fileContent.includes('#### ')) {
+            console.log('Detected spell content');
             const spells = parseSpellMarkdown(fileContent);
+            console.log(`Parsed ${spells.length} spells`);
             return { type: 'spells', data: spells };
         }
         
         // If can't determine, try both parsers
         const beasts = parseBeastMarkdown(fileContent);
         if (beasts.length > 0) {
+            console.log(`Detected ${beasts.length} beasts after trying both parsers`);
             return { type: 'beasts', data: beasts };
         }
         
         const spells = parseSpellMarkdown(fileContent);
         if (spells.length > 0) {
+            console.log(`Detected ${spells.length} spells after trying both parsers`);
             return { type: 'spells', data: spells };
         }
         
         // If no data was parsed successfully
+        console.warn('Failed to parse any content as beasts or spells');
         return { type: 'unknown', data: [] };
     };
     

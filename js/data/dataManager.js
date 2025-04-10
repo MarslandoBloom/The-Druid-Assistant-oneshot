@@ -79,8 +79,11 @@ const DataManager = (function() {
         };
         
         try {
+            console.log('Processing file content, length:', content.length);
             // Parse the markdown file to determine content type
             const parseResult = Parser.parseMarkdownFile(content);
+            
+            console.log('Parse result:', parseResult.type, 'with', parseResult.data.length, 'items');
             
             if (parseResult.type === 'unknown' || parseResult.data.length === 0) {
                 result.error = 'No valid data found in the file';
@@ -89,6 +92,7 @@ const DataManager = (function() {
             
             // Import beasts if present and option enabled
             if (parseResult.type === 'beasts' && options.processBeasts) {
+                console.log(`Processing ${parseResult.data.length} parsed beasts`);
                 if (!options.merge) {
                     await BeastStore.clearBeasts();
                 }
@@ -106,6 +110,7 @@ const DataManager = (function() {
             
             // Import spells if present and option enabled
             if (parseResult.type === 'spells' && options.processSpells) {
+                console.log(`Processing ${parseResult.data.length} parsed spells`);
                 if (!options.merge) {
                     await SpellStore.clearSpells();
                 }
@@ -127,6 +132,7 @@ const DataManager = (function() {
             result.error = error.message;
         }
         
+        console.log('Import result:', result);
         return result;
     };
     

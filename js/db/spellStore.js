@@ -31,18 +31,32 @@ const SpellStore = (function() {
      * @returns {Promise} Resolves when all spells are added
      */
     const addSpells = async (spells) => {
+        console.log(`Attempting to add ${spells.length} spells to database`);
+        
         // Ensure all spells have IDs and are valid
-        const validatedSpells = spells.map(spell => {
-            if (!spell.id) {
-                spell.id = Database.generateUUID();
+        const validatedSpells = [];
+        
+        for (const spell of spells) {
+            try {
+                if (!spell.id) {
+                    spell.id = Database.generateUUID();
+                }
+                
+                if (validateSpell(spell)) {
+                    validatedSpells.push(spell);
+                } else {
+                    console.error(`Invalid spell data rejected: ${spell.name || 'unknown'}`);
+                }
+            } catch (error) {
+                console.error(`Error processing spell ${spell.name || 'unknown'}:`, error);
             }
-            
-            if (!validateSpell(spell)) {
-                throw new Error(`Invalid spell data: ${spell.name || 'unknown'}`);
-            }
-            
-            return spell;
-        });
+        }
+        
+        console.log(`Successfully validated ${validatedSpells.length} out of ${spells.length} spells`);
+        
+        if (validatedSpells.length === 0) {
+            throw new Error('No valid spells to add');
+        }
         
         return Database.addMultiple(STORE_NAME, validatedSpells);
     };
@@ -512,21 +526,28 @@ const SpellStore = (function() {
     const validateSpell = (spell) => {
         // Required fields
         if (!spell.name || spell.level === undefined || !spell.school) {
+            console.warn(`Invalid spell missing required fields: ${spell.name || 'unnamed'}`);
             return false;
         }
         
         // Ensure spell level is a number between 0 and 9
         if (typeof spell.level !== 'number' || spell.level < 0 || spell.level > 9) {
+            console.warn(`Invalid spell level for ${spell.name}: ${spell.level}`);
             return false;
         }
         
-        // Ensure classes is an array
-        if (!Array.isArray(spell.classes)) {
+        // Ensure classes is an array or convert it to one
+        if (!spell.classes) {
+            // Default to empty array if classes is missing
+            spell.classes = [];
+        } else if (!Array.isArray(spell.classes)) {
             // If classes is a string, convert it to an array
             if (typeof spell.classes === 'string') {
                 spell.classes = spell.classes.split(', ').map(c => c.trim());
             } else {
-                return false;
+                console.warn(`Invalid classes format for ${spell.name}: ${typeof spell.classes}`);
+                // Instead of failing, convert to empty array
+                spell.classes = [];
             }
         }
         
