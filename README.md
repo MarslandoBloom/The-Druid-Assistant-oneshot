@@ -67,7 +67,7 @@ This application helps Druid players with:
 - Improved event handling between components for better reliability
 - Fixed browser console errors and warnings
 
-### Stage 5.1: Critical Bug Fixes (March 29, 2025)
+### Stage 5A.1: Critical Bug Fixes (March 29, 2025) - Miscellaneous Debugging
 - Fixed `Database.isReady is not a function` error by updating to use `Database.isConnected()` method
 - Fixed `EventSystem is not defined` error in searchBar.js by replacing with correct `EventManager` reference
 - Fixed type error in search functionality to handle both string and object query formats
@@ -76,7 +76,7 @@ This application helps Druid players with:
 - Enhanced backwards compatibility between different event publishing methods
 - Updated error handling to provide better feedback during search operations
 
-### Stage 5.2: Beast Data Parser Fix (March 30, 2025)
+### Stage 5A.2: Beast Data Parser Fix (March 30, 2025) - Miscellaneous Debugging
 - Fixed critical bug in beast markdown parser that was only identifying some of the beasts
 - Replaced logic that assumed each beast was exactly 2 blocks of text with a more robust regex-based approach
 - Updated parser to properly handle the variable structure of the markdown format
@@ -84,7 +84,7 @@ This application helps Druid players with:
 - Improved validation of parsed beast data to ensure required fields are present
 - Removed dependency on hardcoded sample data which is no longer needed
 
-### Stage 5.3: Beast List Display Fix (March 30, 2025)
+### Stage 5A.3: Beast List Display Fix (March 30, 2025) - Miscellaneous Debugging
 - Fixed critical bug where beast list wasn't updating after data import
 - Added proper subscription to DATA_IMPORTED event in StatblockModule
 - Enhanced renderBeastList() function to be more robust with error handling
@@ -93,7 +93,7 @@ This application helps Druid players with:
 - Added extensive debug logging to help diagnose data flow issues
 - Created fallback filter implementation for greater stability
 
-### Stage 5.4: Infinite Loop and Database Error Fixes (March 30, 2025)
+### Stage 5A.4: Infinite Loop and Database Error Fixes (March 30, 2025) - Miscellaneous Debugging
 - Fixed critical infinite event loop between loadBeasts() and DATA_LOAD_COMPLETE events
 - Added debouncing to prevent multiple simultaneous beast list loads
 - Fixed database constraint errors in UserStore when accessing favorites
@@ -103,7 +103,7 @@ This application helps Druid players with:
 - Made createBeastItem() more resilient to database errors
 - Updated updateFavoritesList() with proper error boundaries
 
-### Stage 5.5: Beast List Rendering Fix (March 30, 2025)
+### Stage 5A.5: Beast List Rendering Fix (March 30, 2025) - Miscellaneous Debugging
 - Fixed critical issue with beast list items not being displayed after import
 - Replaced virtual list implementation with standard list for better reliability
 - Added extensive debug logging to track beast rendering process
@@ -115,7 +115,7 @@ This application helps Druid players with:
 - Enhanced the UI with more consistent spacing and visual hierarchy
 - Fixed multiple DOM structure and styling issues affecting list visibility
 
-### Stage 5.6: Statblock Display Reset (March 30, 2025)
+### Stage 5A.6: Statblock Display Reset (March 30, 2025) - Miscellaneous Debugging
 - Removed statblock display functionality to address critical rendering bug
 - Created clean slate for statblock component implementation
 - Maintained beast selection functionality while removing statblock display code
@@ -125,7 +125,7 @@ This application helps Druid players with:
 - Prepared codebase for reimplementation of statblock display feature
 - This reset affects the following functions: all statblock rendering in StatblockComponent and related code in statblock.js
 
-### Stage 6: New Statblock Renderer Implementation (March 30, 2025)
+### Stage 5A.7: New Statblock Renderer Implementation (March 30, 2025) - Miscellaneous Debugging
 - Created comprehensive statblock renderer component with faithful D&D 5e styling
 - Implemented proper statblock layout based on official D&D format
 - Created CSS styling with responsive design for various screen sizes
@@ -148,7 +148,7 @@ This application helps Druid players with:
 - Prepared component for direct integration into main application
 - Placed all new code in tests folder for isolated testing before integration
 
-### Stage 7: Bug Fix - Statblock Selection Issue (April 1, 2025)
+### Stage 5A.8: Bug Fix - Statblock Selection Issue (April 1, 2025) - Miscellaneous Debugging
 - Fixed critical bug causing statblock display to go blank when selecting beasts
 - Removed history/recently viewed feature which was causing double selection events
 - Removed URL hash navigation system that was triggering duplicate beast selections
@@ -161,7 +161,7 @@ This application helps Druid players with:
 - Streamlined beast selection process to be more reliable
 - Enhanced codebase maintainability by removing unnecessary features
 
-### Stage 8: Statblock Tab Improvements (April 2, 2025)
+### Stage 5A.9: Statblock Tab Improvements (April 2, 2025) - Miscellaneous Debugging
 - Removed environment filtering from the statblock tab to simplify the interface
 - Added collapsible filter menu to save screen space when needed
 - Implemented toggle button for filters with persistent state using localStorage
@@ -172,7 +172,7 @@ This application helps Druid players with:
 - Added transition effects for smooth filter collapse/expand animation
 - Fixed styling for improved visual consistency with rest of the application
 
-### Stage 9: Beast List Organization and Favorites Enhancement (April 2, 2025)
+### Stage 5A.10: Beast List Organization and Favorites Enhancement (April 2, 2025) - Miscellaneous Debugging
 - Redesigned beast list to use collapsible CR groupings
 - Created seven CR groups: CR 0-1/8, CR 1/4, CR 1/2, CR 1, CR 2, CR 3-4, CR 5-6
 - Added expand/collapse all buttons for easy navigation
@@ -189,7 +189,7 @@ This application helps Druid players with:
 - Replaced standard favorite button with purpose-specific favorites buttons
 - Retained star icon markers for favorite beasts in the main list
 
-### Stage 10: Statblock Tab UI Enhancements (April 2, 2025)
+### Stage 5A.11: Statblock Tab UI Enhancements (April 2, 2025) - Miscellaneous Debugging
 - Improved favorites system with separate type-specific favorites:
   - Replaced single "Add to Favourites" button with separate buttons for Wildshape and Conjure favorites
   - Added popup menu to star icon in beast list for choosing favorite type
@@ -208,7 +208,7 @@ This application helps Druid players with:
 - Updated keyboard shortcut (Alt+F) to show favorite options menu
 - Improved design consistency throughout the interface
 
-### Stage 11: UI Styling Improvements (April 2, 2025)
+### Stage 5A.12: UI Styling Improvements (April 2, 2025) - Miscellaneous Debugging
 - Improved visual hierarchy for better UI clarity:
   - Made CR group headings less prominent with smaller font and neutral styling
   - Removed beast counts from CR group headings for cleaner appearance
@@ -226,7 +226,7 @@ This application helps Druid players with:
 - Improved selected beast highlighting with more subtle but clear indication
 - Enhanced hover states and interactive elements with consistent feedback
 
-### Stage 12: Favorite Icon Improvements (April 2, 2025)
+### Stage 5A.13: Favorite Icon Improvements (April 2, 2025) - Miscellaneous Debugging
 - Fixed issues with the favorite star icons in the beast list:
   - Removed duplicate stars that appeared in some cases
   - Made star icons purely visual indicators (non-interactive)
@@ -241,7 +241,7 @@ This application helps Druid players with:
   - Made favorite star color more consistent
   - Improved visual indication of favorite status
 
-### Stage 13: Removed Star from Beast List (April 2, 2025)
+### Stage 5A.14: Removed Star from Beast List (April 2, 2025) - Miscellaneous Debugging
 - Completely removed the favorite star icon from the beast list items:
   - Removed the star element creation in the createBeastItem function
   - Removed associated star styling from CSS
@@ -250,7 +250,7 @@ This application helps Druid players with:
 - Improved code efficiency by removing redundant code
 - Maintained all favorite functionality through the existing system
 
-### Stage 14: Removed CR Badge from Beast List (April 2, 2025)
+### Stage 5A.15: Removed CR Badge from Beast List (April 2, 2025) - Miscellaneous Debugging
 - Completely removed the CR badge from the beast list items:
   - Removed the CR badge element creation in the createBeastItem function
   - Removed associated CR badge styling from CSS
@@ -261,7 +261,7 @@ This application helps Druid players with:
   - Decreased the right side from 30% to 10%
 - Improved visual consistency and reduced clutter in the beast list
 
-### Stage 15: Fixed Favorites System Database Errors (April 3, 2025)
+### Stage 5A.16: Fixed Favorites System Database Errors (April 3, 2025) - Miscellaneous Debugging
 - Fixed critical bug causing database constraint errors when using favorites:
   - Completely restructured the favorites storage system to properly separate read and initialization operations
   - Created dedicated initialization functions for favorites and type-specific favorites
@@ -279,7 +279,7 @@ This application helps Druid players with:
 - Created comprehensive initializeAllFavourites function to centralize initialization
 - Updated database initialization sequence to properly initialize user preferences
 
-### Stage 16: Fixed Data Management Button Issues (April 3, 2025)
+### Stage 5A.17: Fixed Data Management Button Issues (April 3, 2025) - Miscellaneous Debugging
 - Fixed critical bug with data management buttons (import, export, reset) becoming unresponsive after use:
   - Changed approach from using global loading overlay to simpler button state management
   - Modified import, export, and reset functions to properly preserve button event handlers
@@ -291,7 +291,7 @@ This application helps Druid players with:
   - Ensured consistent button state during all operations
 - Added direct confirmation handling for reset operation to eliminate redundant confirmation dialogs
 
-### Stage 17: Fixed Data Management Buttons and Notifications (April 10, 2025)
+### Stage 5A.18: Fixed Data Management Buttons and Notifications (April 10, 2025) - Miscellaneous Debugging
 - Fixed critical issues with data management buttons getting stuck:
   - Restructured the import, export, and reset functions with proper try/finally blocks
   - Ensured button states are always restored regardless of success or error
@@ -308,7 +308,7 @@ This application helps Druid players with:
   - Added optional chaining for error message access
   - Improved error handling consistency across all data management functions
 
-### Stage 18: Fixed Reset Data Functionality (April 10, 2025)
+### Stage 5A.19: Fixed Reset Data Functionality (April 10, 2025) - Miscellaneous Debugging
 - Fixed critical issue with Reset Data button not updating UI after database reset:
   - Added proper implementation of the handleDataReset function in app.js
   - Made StatblockModule subscribe to the DATA_RESET event
