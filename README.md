@@ -260,3 +260,63 @@ This application helps Druid players with:
   - Increased the left side (name/type) from 70% to 90%
   - Decreased the right side from 30% to 10%
 - Improved visual consistency and reduced clutter in the beast list
+
+### Stage 15: Fixed Favorites System Database Errors (April 3, 2025)
+- Fixed critical bug causing database constraint errors when using favorites:
+  - Completely restructured the favorites storage system to properly separate read and initialization operations
+  - Created dedicated initialization functions for favorites and type-specific favorites
+  - Removed attempt to create favorites entries during data retrieval that was causing constraint errors
+  - Added explicit favorites system initialization during application startup
+  - Created separate functions for getting, initializing, and managing favorites
+- Improved error handling in the favorites system:
+  - Enhanced error messages with better context for debugging
+  - Made the system more resilient to database errors
+  - Improved error recovery to maintain application functionality
+- Added initialization sequence for all favorites types at database creation time:
+  - General favorites
+  - Wildshape favorites
+  - Conjure favorites
+- Created comprehensive initializeAllFavourites function to centralize initialization
+- Updated database initialization sequence to properly initialize user preferences
+
+### Stage 16: Fixed Data Management Button Issues (April 3, 2025)
+- Fixed critical bug with data management buttons (import, export, reset) becoming unresponsive after use:
+  - Changed approach from using global loading overlay to simpler button state management
+  - Modified import, export, and reset functions to properly preserve button event handlers
+  - Ensured buttons are always restored to original state even after errors
+  - Fixed import button partially working issue (only responding when clicking left edge)
+- Enhanced error handling in data operations:
+  - Added explicit error recovery for all data management functions
+  - Improved user feedback during data operations with text changes
+  - Ensured consistent button state during all operations
+- Added direct confirmation handling for reset operation to eliminate redundant confirmation dialogs
+
+### Stage 17: Fixed Data Management Buttons and Notifications (April 10, 2025)
+- Fixed critical issues with data management buttons getting stuck:
+  - Restructured the import, export, and reset functions with proper try/finally blocks
+  - Ensured button states are always restored regardless of success or error
+  - Fixed import button staying in 'Importing...' state after operation completes
+  - Made button event handlers properly preserve original button text
+- Improved notification system reliability:
+  - Fixed notification display issues with improved CSS transitions
+  - Enhanced notification creation to avoid text content being overwritten
+  - Added proper event propagation control for notification close buttons
+  - Improved notification cleanup to prevent memory leaks
+  - Added small delay before showing notifications to ensure proper CSS animation
+- Added more robust error handling in all data operations:
+  - Implemented proper null/undefined checking for operation results
+  - Added optional chaining for error message access
+  - Improved error handling consistency across all data management functions
+
+### Stage 18: Fixed Reset Data Functionality (April 10, 2025)
+- Fixed critical issue with Reset Data button not updating UI after database reset:
+  - Added proper implementation of the handleDataReset function in app.js
+  - Made StatblockModule subscribe to the DATA_RESET event
+  - Added UI cleanup in loadBeasts function to handle empty database state properly
+  - Implemented proper reset of UI components when data is cleared
+  - Added delay to ensure database operations complete before UI updates
+- Enhanced user experience after reset:
+  - Reset buttons are properly disabled when no beasts are loaded
+  - Statblock display shows placeholder message after reset
+  - Beast list shows appropriate empty state message
+  - Result count is updated to show zero results

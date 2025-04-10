@@ -351,6 +351,9 @@ const UIUtils = (function() {
         if (!container) {
             container = createElement('div', { className: `notification-container ${settings.position}` });
             document.body.appendChild(container);
+        } else {
+            // Make sure container has the correct position class
+            container.className = `notification-container ${settings.position}`;
         }
         
         // Create notification element
@@ -399,7 +402,15 @@ const UIUtils = (function() {
                 type: 'button',
                 innerHTML: '&times;',
                 ariaLabel: 'Close',
-                onclick: () => notification.classList.remove('visible')
+                onclick: (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    notification.classList.remove('visible');
+                    // Remove after animation
+                    setTimeout(() => {
+                        removeElement(notification);
+                    }, 300);
+                }
             });
             notification.appendChild(closeButton);
         }
@@ -407,33 +418,31 @@ const UIUtils = (function() {
         // Add to container
         container.appendChild(notification);
         
-        // Set message and type
-        notification.textContent = message;
-        notification.className = `notification ${type}`;
-        
         // Show the notification
-        notification.classList.add('visible');
+        setTimeout(() => {
+            notification.classList.add('visible');
+        }, 10); // Small delay to ensure the CSS transition works
         
-        // Hide after timeout
-        const timeoutId = setTimeout(() => {
-            notification.classList.remove('visible');
-        }, duration);
-        
-        // Allow clicking to dismiss if enabled
-        if (settings.dismissible) {
-            notification.addEventListener('click', (event) => {
-                // Only dismiss if clicking the notification itself, not its children
-                if (event.target === notification) {
-                    clearTimeout(timeoutId);
-                    notification.classList.remove('visible');
-                    
-                    // Remove after animation
-                    setTimeout(() => {
-                        removeElement(notification);
-                    }, 300);
-                }
-            });
+        // Hide after timeout if autoClose is enabled
+        let timeoutId;
+        if (settings.autoClose) {
+            timeoutId = setTimeout(() => {
+                notification.classList.remove('visible');
+                // Remove after animation
+                setTimeout(() => {
+                    removeElement(notification);
+                }, 300);
+            }, duration);
         }
+        
+        // Add method to programmatically close the notification
+        notification.close = () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            notification.classList.remove('visible');
+            setTimeout(() => {
+                removeElement(notification);
+            }, 300);
+        };
         
         return notification;
     };

@@ -242,23 +242,36 @@ const UserStore = (function() {
      */
     const getFavourites = async () => {
         try {
-            // Direct database check first
+            // Only get the data without trying to add anything
             const existing = await Database.getById(STORE_NAME, KEYS.FAVOURITES);
-            
-            if (existing) {
-                return existing.value || [];
-            }
-            
-            // If not found, create the setting
-            await Database.add(STORE_NAME, {
-                key: KEYS.FAVOURITES,
-                value: []
-            });
-            
-            return [];
+            return existing ? existing.value || [] : [];
         } catch (error) {
             console.warn('Error getting favourites, returning empty array:', error);
             return [];
+        }
+    };
+    
+    /**
+     * Initialize favorites storage
+     * @returns {Promise<boolean>} Promise resolving to success indicator
+     */
+    const initializeFavourites = async () => {
+        try {
+            // Check if favorites entry exists
+            const exists = await Database.getById(STORE_NAME, KEYS.FAVOURITES);
+            
+            if (!exists) {
+                // Create it only if it doesn't exist
+                await Database.add(STORE_NAME, {
+                    key: KEYS.FAVOURITES,
+                    value: []
+                });
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error initializing favourites:', error);
+            return false;
         }
     };
     
@@ -272,23 +285,40 @@ const UserStore = (function() {
             // Get the appropriate key based on type
             const key = type === 'wildshape' ? KEYS.WILDSHAPE_FAVOURITES : KEYS.CONJURE_FAVOURITES;
             
-            // Direct database check first
+            // Only get the data without trying to add anything
             const existing = await Database.getById(STORE_NAME, key);
-            
-            if (existing) {
-                return existing.value || [];
-            }
-            
-            // If not found, create the setting
-            await Database.add(STORE_NAME, {
-                key,
-                value: []
-            });
-            
-            return [];
+            return existing ? existing.value || [] : [];
         } catch (error) {
             console.warn(`Error getting ${type} favourites, returning empty array:`, error);
             return [];
+        }
+    };
+    
+    /**
+     * Initialize favorites by type storage
+     * @param {string} type - The type of favourites ('wildshape' or 'conjure')
+     * @returns {Promise<boolean>} Promise resolving to success indicator
+     */
+    const initializeFavouritesByType = async (type) => {
+        try {
+            // Get the appropriate key based on type
+            const key = type === 'wildshape' ? KEYS.WILDSHAPE_FAVOURITES : KEYS.CONJURE_FAVOURITES;
+            
+            // Check if favorites entry exists
+            const exists = await Database.getById(STORE_NAME, key);
+            
+            if (!exists) {
+                // Create it only if it doesn't exist
+                await Database.add(STORE_NAME, {
+                    key,
+                    value: []
+                });
+            }
+            
+            return true;
+        } catch (error) {
+            console.error(`Error initializing ${type} favourites:`, error);
+            return false;
         }
     };
     
@@ -482,6 +512,22 @@ const UserStore = (function() {
         }
     };
     
+    /**
+     * Initialize all favorites storage
+     * @returns {Promise<boolean>} Promise resolving to success indicator
+     */
+    const initializeAllFavourites = async () => {
+        try {
+            await initializeFavourites();
+            await initializeFavouritesByType('wildshape');
+            await initializeFavouritesByType('conjure');
+            return true;
+        } catch (error) {
+            console.error('Error initializing all favourites:', error);
+            return false;
+        }
+    };
+    
     // Public API
     return {
         // Basic operations
@@ -517,6 +563,9 @@ const UserStore = (function() {
         removeFavourite,
         removeFavouriteByType,
         clearFavourites,
+        initializeFavourites,
+        initializeFavouritesByType,
+        initializeAllFavourites,
         
         // Import/Export
         getAllSettings,

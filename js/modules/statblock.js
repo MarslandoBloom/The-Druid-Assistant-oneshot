@@ -69,6 +69,18 @@ const StatblockModule = (function() {
             }
         });
         
+        // Subscribe to data reset events
+        EventManager.subscribe(EventManager.EVENTS.DATA_RESET, function(data) {
+            console.log('StatblockModule received DATA_RESET event:', data);
+            // Wait a moment to ensure database is cleared
+            setTimeout(() => {
+                console.log('Reloading beasts after data reset...');
+                loadBeasts();
+                // Ensure state is reset
+                selectedBeastId = null;
+            }, 50);
+        });
+        
         // Load expanded groups state
         UserStore.getSetting('statblock.expandedGroups', {}).then(savedGroups => {
             if (savedGroups) {
@@ -451,6 +463,22 @@ const StatblockModule = (function() {
                     if (beastList.length === 0) {
                         console.warn('StatblockModule: No beasts loaded from database');
                         showEmptyState('No beasts found in the database. Try importing beast data.');
+                        
+                        // Clear the statblock display if it exists
+                        const statblockDisplay = document.getElementById('statblock-display');
+                        if (statblockDisplay) {
+                            statblockDisplay.innerHTML = '<div class="statblock-placeholder">Select a beast to view its statblock</div>';
+                        }
+                        
+                        // Disable action buttons
+                        const wildshapeButton = document.getElementById('wildshape-button');
+                        const conjureButton = document.getElementById('conjure-button');
+                        if (wildshapeButton) wildshapeButton.disabled = true;
+                        if (conjureButton) conjureButton.disabled = true;
+                        
+                        // Update the result count
+                        updateResultCount();
+                        
                         hideLoading();
                         isLoadingBeasts = false;
                         return;

@@ -67,6 +67,16 @@ const DruidAssistant = (function() {
                     console.log('Database integrity check passed');
                 }
                 
+                // Initialize favorites storage
+                try {
+                    console.log('Initializing user preferences...');
+                    await UserStore.initializeAllFavourites();
+                    console.log('User preferences initialized successfully');
+                } catch (prefsError) {
+                    console.error('Error initializing user preferences:', prefsError);
+                    // Continue initialization despite this error
+                }
+                
                 // Announce database readiness event explicitly
                 EventManager.publish('database:ready', { status: 'connected' });
                 console.log('Published database:ready event');
@@ -291,8 +301,11 @@ const DruidAssistant = (function() {
             return;
         }
         
-        // Show loading state
-        const loadingIndicator = UIUtils.showLoading('Importing data...');
+        // Disable the import button while processing
+        const importButton = document.getElementById('import-button');
+        const originalText = importButton.textContent;
+        importButton.textContent = 'Importing...';
+        importButton.disabled = true;
         
         // Reset the file input for future imports
         elements.importFile.value = '';
@@ -315,7 +328,7 @@ const DruidAssistant = (function() {
             state.dataLoaded = true;
             
             // Show notification based on result
-            if (result.success) {
+            if (result && result.success) {
                 let message = 'Import successful:';
                 const parts = [];
                 
@@ -332,64 +345,81 @@ const DruidAssistant = (function() {
                 message += ' ' + parts.join(', ');
                 showNotification(message, 'success');
             } else {
-                showError(`Import failed: ${result.error || 'Unknown error'}`);
+                showError(`Import failed: ${result?.error || 'Unknown error'}`);
             }
             
         } catch (error) {
             console.error('Error importing data:', error);
             showError(`Error importing data: ${error.message}`);
         } finally {
-            loadingIndicator.hide();
+            // Always restore the button state
+            importButton.textContent = originalText;
+            importButton.disabled = false;
         }
     };
     
     // Handle data export
     const handleExport = async () => {
+        // Disable the export button while processing
+        const exportButton = document.getElementById('export-button');
+        const originalText = exportButton.textContent;
+        exportButton.textContent = 'Exporting...';
+        exportButton.disabled = true;
+        
         try {
-            const loadingIndicator = UIUtils.showLoading('Exporting data...');
+            // Use DataManager to export data
+            const result = await DataManager.exportAllData({
+                showNotification: false  // We'll handle notifications
+            });
             
-            try {
-                // Use DataManager to export data
-                const result = await DataManager.exportAllData({
-                    showNotification: false  // We'll handle notifications
-                });
-                
-                if (result.success) {
-                    showNotification('Data exported successfully', 'success');
-                } else {
-                    showError(`Export failed: ${result.error || 'Unknown error'}`);
-                }
-            } finally {
-                loadingIndicator.hide();
+            if (result && result.success) {
+                showNotification('Data exported successfully', 'success');
+            } else {
+                showError(`Export failed: ${result?.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error exporting data:', error);
             showError(`Error exporting data: ${error.message}`);
+        } finally {
+            // Always restore button state
+            exportButton.textContent = originalText;
+            exportButton.disabled = false;
         }
     };
     
     // Handle data reset
     const handleReset = async () => {
+        // Use DataManager to reset data - first get confirmation
+        const confirmed = confirm('Are you sure you want to reset all data? This cannot be undone.');
+        if (!confirmed) {
+            return; // User cancelled
+        }
+        
+        // Disable the reset button while processing
+        const resetButton = document.getElementById('reset-button');
+        const originalText = resetButton.textContent;
+        resetButton.textContent = 'Resetting...';
+        resetButton.disabled = true;
+        
         try {
-            // Use DataManager to reset data
+            // Use DataManager to reset data without showing confirmation again
             const result = await DataManager.resetAllData({
-                showConfirmation: true,       // Show confirmation dialog
-                showNotification: false        // We'll handle notifications
+                showConfirmation: false,  // We've already confirmed
+                showNotification: false    // We'll handle notifications
             });
             
-            // If reset was cancelled, do nothing
-            if (result.cancelled) {
-                return;
-            }
-            
-            if (result.success) {
+            if (result && result.success) {
                 showNotification('All data has been reset', 'success');
             } else {
-                showError(`Reset failed: ${result.error || 'Unknown error'}`);
+                showError(`Reset failed: ${result?.error || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error resetting data:', error);
             showError(`Error resetting data: ${error.message}`);
+        } finally {
+            // Always restore button state
+            resetButton.textContent = originalText;
+            resetButton.disabled = false;
         }
     };
     
@@ -475,7 +505,30 @@ const DruidAssistant = (function() {
     // Handle data reset event
     const handleDataReset = (data) => {
         console.log('Data reset:', data);
-        // Update UI or perform other actions based on data reset
+        
+        // Reload the beast list data
+        if (typeof StatblockModule !== 'undefined') {
+            console.log('Reloading beast list after data reset');
+            StatblockModule.showBeasts();
+        }
+        
+        // Reload any other components that need data refresh
+        setTimeout(() => {
+            // Force a browser storage check to update UI components
+            EventManager.publish('database:ready', { status: 'reset' });
+            
+            // Clear statblock display if it exists
+            const statblockDisplay = document.getElementById('statblock-display');
+            if (statblockDisplay) {
+                statblockDisplay.innerHTML = '<div class="statblock-placeholder">Select a beast to view its statblock</div>';
+            }
+            
+            // Disable action buttons
+            const wildshapeButton = document.getElementById('wildshape-button');
+            const conjureButton = document.getElementById('conjure-button');
+            if (wildshapeButton) wildshapeButton.disabled = true;
+            if (conjureButton) conjureButton.disabled = true;
+        }, 100); // Small delay to ensure database operations complete
     };
     
     // Show notification message

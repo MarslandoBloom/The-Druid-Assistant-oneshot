@@ -142,6 +142,9 @@ const Database = (function() {
         const store = db.createObjectStore(STORES.USER_PREFS, { keyPath: 'key' });
         
         console.log('User preferences store created successfully');
+        
+        // We'll initialize the favorites during app startup instead of here
+        // This is because we can't use async/await in onupgradeneeded
     };
     
     /**
