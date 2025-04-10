@@ -114,6 +114,20 @@ const DruidAssistant = (function() {
             // Mark as initialized
             state.initialized = true;
             
+            // Initialize the SpellsModule
+            try {
+                console.log('Initializing SpellsModule...');
+                if (typeof SpellsModule !== 'undefined') {
+                    await SpellsModule.init();
+                    console.log('SpellsModule initialized successfully');
+                } else {
+                    console.warn('SpellsModule not found, skipping initialization');
+                }
+            } catch (spellsError) {
+                console.error('Error initializing SpellsModule:', spellsError);
+                // Continue initialization despite this error
+            }
+
             // Publish initialization event
             try {
                 console.log('Publishing APP_INITIALIZED event...');
@@ -279,7 +293,12 @@ const DruidAssistant = (function() {
                 // Initialize conjure tab if needed
                 break;
             case 'spells':
-                // Initialize spells tab if needed
+                // Refresh spells tab content
+                if (typeof SpellsModule !== 'undefined') {
+                    // The SpellsModule tab:changed handler will handle this
+                    // But we trigger an explicit event just in case
+                    EventManager.publish('spell:tab:shown');
+                }
                 break;
             case 'dice':
                 // Initialize dice tab if needed

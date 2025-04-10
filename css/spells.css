@@ -1,0 +1,641 @@
+/* Spell CSS for Druid's Assistant
+   Based on D&D 5e 2014 rulebook format */
+
+/* Base spell card container */
+.spell-card {
+    background-color: #fdf1dc;
+    padding: 0.8rem;
+    border: 1px solid #DDD;
+    border-radius: 0px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    margin-bottom: 1rem;
+    font-family: 'Noto Serif', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #472d20;
+    position: relative;
+}
+
+/* Spell levels color coding */
+.spell-card[data-level="0"] { border-left: 5px solid #808080; } /* Cantrip - gray */
+.spell-card[data-level="1"] { border-left: 5px solid #229954; } /* 1st - green */
+.spell-card[data-level="2"] { border-left: 5px solid #3498db; } /* 2nd - blue */
+.spell-card[data-level="3"] { border-left: 5px solid #9b59b6; } /* 3rd - purple */
+.spell-card[data-level="4"] { border-left: 5px solid #e74c3c; } /* 4th - red */
+.spell-card[data-level="5"] { border-left: 5px solid #f1c40f; } /* 5th - yellow */
+.spell-card[data-level="6"] { border-left: 5px solid #e67e22; } /* 6th - orange */
+.spell-card[data-level="7"] { border-left: 5px solid #1abc9c; } /* 7th - teal */
+.spell-card[data-level="8"] { border-left: 5px solid #34495e; } /* 8th - navy */
+.spell-card[data-level="9"] { border-left: 5px solid #7f8c8d; } /* 9th - silver */
+
+/* Spell header */
+.spell-header {
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid #e69a28;
+    padding-bottom: 0.25rem;
+}
+
+.spell-name {
+    font-size: 20px;
+    font-weight: bold;
+    font-family: 'Calibri', 'Gill Sans', 'Gill Sans MT', sans-serif;
+    margin: 0 0 0.2rem 0;
+    color: #822000;
+}
+
+.spell-level-school {
+    font-size: 14px;
+    font-style: italic;
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* Dividers */
+.spell-divider {
+    height: 4px;
+    background: #e69a28;
+    border: none;
+    margin: 0.5rem 0;
+    position: relative;
+}
+
+/* Meta information section */
+.spell-meta {
+    margin-bottom: 0.5rem;
+}
+
+.spell-meta-property {
+    margin: 0.2rem 0;
+    line-height: 1.4;
+}
+
+.spell-meta-property-name {
+    font-weight: bold;
+}
+
+/* Description section */
+.spell-description {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.spell-description p {
+    margin: 0.4rem 0;
+}
+
+/* Tables within spell descriptions */
+.spell-table {
+    width: 100%;
+    margin: 0.8rem 0;
+    border-collapse: collapse;
+}
+
+.spell-table-title {
+    font-weight: bold;
+    font-size: 15px;
+    margin: 0.8rem 0 0.4rem 0;
+}
+
+.spell-table-row {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+}
+
+.spell-table-row:first-of-type {
+    font-weight: bold;
+    background-color: #f5e6cb;
+}
+
+.spell-table-cell {
+    flex: 1;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #ddd;
+}
+
+/* Higher levels section */
+.spell-higher-levels {
+    margin-top: 0.6rem;
+    font-style: italic;
+    font-weight: bold;
+}
+
+/* Classes section */
+.spell-classes {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e69a28;
+    font-size: 13px;
+}
+
+/* Action buttons */
+.spell-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+
+.spell-action-button {
+    padding: 0.4rem 0.8rem;
+    background-color: #f0f7f0;
+    border: 1px solid #006400;
+    color: #006400;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.spell-action-button:hover {
+    background-color: #006400;
+    color: white;
+}
+
+.spell-action-button:disabled {
+    background-color: #ddd;
+    border-color: #999;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.spell-action-button.active {
+    background-color: #006400;
+    color: white;
+}
+
+/* Spell list item (for list view) */
+.spell-list-item {
+    padding: 0.5rem 0.7rem;
+    margin: 0.2rem 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Spell level headers in list view */
+.spell-level-header {
+    padding: 0.4rem 0.7rem;
+    margin: 0.8rem 0 0.4rem 0;
+    font-weight: bold;
+    color: #004d00;
+    background-color: #e0f0e0;
+    border-radius: 4px;
+    border-left: 4px solid #006400;
+}
+
+/* Result count display */
+.result-count {
+    padding: 0.3rem 0.7rem;
+    color: #666;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #ddd;
+    background-color: #f9f9f9;
+    text-align: right;
+}
+
+.spell-list-item:hover {
+    background-color: #f7f9f7;
+    border-color: #c0d6c0;
+}
+
+.spell-list-item.selected {
+    background-color: #e0f0e0;
+    color: #004d00;
+    border-color: #006400;
+    box-shadow: 0 0 0 2px rgba(0, 100, 0, 0.1);
+    font-weight: bold;
+}
+
+.spell-list-item.prepared {
+    border-left: 4px solid #006400;
+}
+
+.spell-list-item-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 90%;
+}
+
+.spell-list-item-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    width: 10%;
+}
+
+.spell-item-name {
+    font-weight: bold;
+}
+
+.spell-item-level {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Spell slots section */
+.spell-slots-container {
+    margin-top: 1rem;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.spell-slots-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #004d00;
+}
+
+.spell-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.slot-level {
+    flex: 1;
+    min-width: 100px;
+    margin-bottom: 0.5rem;
+}
+
+.slot-level h4 {
+    font-size: 14px;
+    margin-bottom: 0.3rem;
+    color: #472d20;
+}
+
+.slot-trackers {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.slot-tracker {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #006400;
+    border-radius: 50%;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.slot-tracker.used {
+    background-color: #006400;
+}
+
+/* Spell preparation limits */
+.preparation-limit {
+    margin-top: 0.5rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.preparation-limit.over-limit {
+    color: #f44336;
+}
+
+/* Druid level selector */
+.druid-level-container {
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f0f7f0;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.druid-level-label {
+    font-weight: bold;
+    color: #004d00;
+}
+
+.druid-level {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.druid-level input {
+    width: 60px;
+    padding: 0.3rem;
+    border: 1px solid #006400;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.level-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.level-control-button {
+    width: 20px;
+    height: 20px;
+    background-color: #006400;
+    color: white;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.level-control-button:hover {
+    background-color: #004d00;
+}
+
+.wisdom-modifier {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wisdom-modifier label {
+    font-weight: bold;
+    color: #004d00;
+}
+
+.wisdom-modifier select {
+    padding: 0.3rem;
+    border: 1px solid #006400;
+    border-radius: 4px;
+    background-color: white;
+}
+
+/* Spell view tabs */
+.spell-view-tabs {
+    display: flex;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab-btn {
+    padding: 0.5rem 1rem;
+    background-color: #f0f7f0;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-right: 0.2rem;
+}
+
+.tab-btn:hover {
+    background-color: #e0f0e0;
+}
+
+.tab-btn.active {
+    background-color: #006400;
+    color: white;
+    border-color: #006400;
+}
+
+/* Spell filters */
+.spell-filters {
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.spell-filter-group {
+    margin-bottom: 0.8rem;
+}
+
+.spell-filter-title {
+    font-weight: bold;
+    margin-bottom: 0.4rem;
+    color: #004d00;
+}
+
+.spell-filter-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.spell-filter-item {
+    padding: 0.3rem 0.6rem;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.spell-filter-item:hover {
+    background-color: #f0f7f0;
+    border-color: #006400;
+}
+
+.spell-filter-item.active {
+    background-color: #006400;
+    color: white;
+    border-color: #006400;
+}
+
+/* Buttons for spell management */
+.spell-management-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.management-button {
+    padding: 0.4rem 0.8rem;
+    background-color: #f0f7f0;
+    border: 1px solid #006400;
+    color: #006400;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    flex: 1;
+    text-align: center;
+}
+
+.management-button:hover {
+    background-color: #006400;
+    color: white;
+}
+
+.management-button.warning {
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.management-button.warning:hover {
+    background-color: #e74c3c;
+    color: white;
+}
+
+/* Responsive design for spell tab */
+@media (max-width: 768px) {
+    .spells-container {
+        flex-direction: column;
+    }
+    
+    .spell-list-container,
+    .spell-detail-container {
+        width: 100%;
+    }
+    
+    .spell-action-button {
+        padding: 0.5rem 0.4rem;
+        font-size: 0.9rem;
+    }
+    
+    .spell-slots {
+        flex-direction: column;
+    }
+    
+    .slot-level {
+        min-width: 100%;
+    }
+}
+
+/* Split layout for spell tab */
+.spells-split-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1rem;
+}
+
+.spell-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.spell-list-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: 600px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.spell-detail-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.8rem;
+    background-color: #f9f9f9;
+    min-height: 400px;
+    overflow-y: auto;
+    max-height: 800px;
+}
+
+.spell-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    text-align: center;
+    padding: 2rem;
+}
+
+/* Spell history */
+.spell-history-item {
+    padding: 0.5rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.spell-history-item-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+}
+
+.spell-history-item-name {
+    color: #004d00;
+}
+
+.spell-history-item-time {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.spell-history-item-details {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.3rem;
+}
+
+/* Slot selection dialog */
+.slot-selection-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 1rem;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-width: 90%;
+    width: 400px;
+}
+
+.slot-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.slot-option {
+    padding: 0.5rem;
+    background-color: #f0f7f0;
+    border: 1px solid #006400;
+    color: #004d00;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.slot-option:hover {
+    background-color: #006400;
+    color: white;
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.cancel-cast {
+    padding: 0.4rem 0.8rem;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-cast:hover {
+    background-color: #e0e0e0;
+}
